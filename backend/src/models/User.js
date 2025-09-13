@@ -43,7 +43,7 @@ const userSchema = new mongoose.Schema({
   },
   gender: {
     type: String,
-    enum: ['male', 'female', 'other'],
+    enum: ['male', 'female', 'other', 'prefer-not-to-say'],
     required: [true, 'Gender is required']
   },
   address: {
@@ -52,6 +52,39 @@ const userSchema = new mongoose.Schema({
     state: String,
     zipCode: String,
     country: String
+  },
+  // Additional profile fields
+  city: {
+    type: String,
+    trim: true
+  },
+  state: {
+    type: String,
+    trim: true
+  },
+  zipCode: {
+    type: String,
+    trim: true
+  },
+  emergencyContactName: {
+    type: String,
+    trim: true
+  },
+  emergencyContactPhone: {
+    type: String,
+    trim: true
+  },
+  medicalHistory: {
+    type: String,
+    trim: true
+  },
+  allergies: {
+    type: String,
+    trim: true
+  },
+  currentMedications: {
+    type: String,
+    trim: true
   },
   isActive: {
     type: Boolean,

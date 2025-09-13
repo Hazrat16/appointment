@@ -192,7 +192,15 @@ const updateProfile = async (req, res, next) => {
       phone: req.body.phone,
       dateOfBirth: req.body.dateOfBirth,
       gender: req.body.gender,
-      address: req.body.address
+      address: req.body.address,
+      city: req.body.city,
+      state: req.body.state,
+      zipCode: req.body.zipCode,
+      emergencyContactName: req.body.emergencyContactName,
+      emergencyContactPhone: req.body.emergencyContactPhone,
+      medicalHistory: req.body.medicalHistory,
+      allergies: req.body.allergies,
+      currentMedications: req.body.currentMedications
     };
 
     // Remove undefined fields
