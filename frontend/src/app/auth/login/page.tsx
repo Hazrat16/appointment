@@ -52,6 +52,7 @@ export default function LoginPage() {
       console.log("Login attempt with:", data);
       await login(data.email, data.password);
       // Navigation will be handled by the AuthContext
+      router.push("/");
     } catch (error) {
       console.error("Login error:", error);
       // Error is handled by the AuthContext
@@ -121,21 +122,6 @@ export default function LoginPage() {
                 className="w-full"
                 loading={false}
                 disabled={false}
-                onClick={() => {
-                  console.log("Button clicked!");
-                  // Get current form values
-                  const currentEmail =
-                    watchedFields.email || "hazrat@yopmail.com";
-                  const currentPassword =
-                    watchedFields.password || "password123";
-
-                  const formData = {
-                    email: currentEmail,
-                    password: currentPassword,
-                  };
-                  console.log("Form submission with current values:", formData);
-                  onSubmit(formData);
-                }}
               >
                 <LogIn className="w-4 h-4 mr-2" />
                 Sign In
