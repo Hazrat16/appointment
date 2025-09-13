@@ -6,7 +6,7 @@ export interface User {
   role: "patient" | "doctor" | "admin";
   phone: string;
   dateOfBirth: string;
-  gender: "male" | "female" | "other";
+  gender: "male" | "female" | "other" | "prefer-not-to-say";
   address?: {
     street?: string;
     city?: string;
@@ -14,6 +14,15 @@ export interface User {
     zipCode?: string;
     country?: string;
   };
+  // Additional profile fields
+  city?: string;
+  state?: string;
+  zipCode?: string;
+  emergencyContactName?: string;
+  emergencyContactPhone?: string;
+  medicalHistory?: string;
+  allergies?: string;
+  currentMedications?: string;
   isActive: boolean;
   lastLogin?: string;
   createdAt: string;
@@ -94,6 +103,7 @@ export interface ApiResponse<T = any> {
   data?: T;
   user?: User;
   token?: string;
+  doctor?: Doctor;
   doctors?: Doctor[];
   appointments?: Appointment[];
   availability?: TimeSlot[];
