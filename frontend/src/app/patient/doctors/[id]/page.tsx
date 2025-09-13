@@ -32,6 +32,7 @@ import { z } from "zod";
 const appointmentSchema = z.object({
   appointmentDate: z.string().min(1, "Please select a date"),
   startTime: z.string().min(1, "Please select a time slot"),
+  endTime: z.string().optional(),
   symptoms: z
     .string()
     .min(10, "Please describe your symptoms (min 10 characters)"),
@@ -77,7 +78,10 @@ export default function DoctorBookingPage({
       return;
     }
 
+    console.log("Params in useEffect:", params);
     console.log("Doctor ID from params:", params.id);
+    console.log("Type of ID:", typeof params.id);
+
     if (params.id) {
       fetchDoctor();
     }
@@ -90,7 +94,10 @@ export default function DoctorBookingPage({
   }, [watchedDate, params.id]);
 
   const fetchDoctor = async () => {
+    console.log("fetchDoctor called with params.id:", params.id);
+
     if (!params.id) {
+      console.log("No doctor ID provided");
       toast.error("Invalid doctor ID");
       router.push("/patient/doctors");
       return;
@@ -98,7 +105,10 @@ export default function DoctorBookingPage({
 
     try {
       setLoading(true);
+      console.log("Making API call to:", `/doctors/${params.id}`);
       const response = await doctorsAPI.getDoctor(params.id);
+      console.log("Doctor API response:", response);
+
       if (response.success) {
         setDoctor(response.doctor);
       } else {
@@ -136,16 +146,24 @@ export default function DoctorBookingPage({
   const onSubmit = async (data: AppointmentFormData) => {
     if (!doctor) return;
 
+    console.log("Form data:", data);
+    console.log("Selected time slot:", {
+      startTime: data.startTime,
+      endTime: data.endTime,
+    });
+
     try {
       setBooking(true);
       const appointmentData: CreateAppointmentRequest = {
         doctorId: params.id,
         appointmentDate: data.appointmentDate,
         startTime: data.startTime,
-        endTime: data.startTime, // Will be calculated by backend
+        endTime: data.endTime || data.startTime, // Use actual end time or fallback to start time
         symptoms: data.symptoms,
         notes: data.notes || "",
       };
+
+      console.log("Appointment data being sent:", appointmentData);
 
       const response = await appointmentsAPI.createAppointment(appointmentData);
       if (response.success) {
@@ -163,6 +181,7 @@ export default function DoctorBookingPage({
   };
 
   const handleTimeSlotSelect = (startTime: string, endTime: string) => {
+    console.log("Time slot selected:", { startTime, endTime });
     setValue("startTime", startTime);
     setValue("endTime", endTime);
   };
@@ -318,6 +337,9 @@ export default function DoctorBookingPage({
                       error={errors.appointmentDate?.message}
                     />
                   </div>
+
+                  {/* Hidden endTime field */}
+                  <input {...register("endTime")} type="hidden" />
 
                   {/* Time Slots */}
                   {watchedDate && (

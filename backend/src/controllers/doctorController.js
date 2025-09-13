@@ -42,6 +42,16 @@ const getDoctors = async (req, res, next) => {
     // Get total count for pagination
     const total = await Doctor.countDocuments({ ...filter, ...searchQuery });
 
+    // Transform _id to id for frontend compatibility
+    const transformedDoctors = doctors.map(doctor => ({
+      ...doctor.toObject(),
+      id: doctor._id.toString(),
+      user: {
+        ...doctor.user.toObject(),
+        id: doctor.user._id.toString()
+      }
+    }));
+
     res.json({
       success: true,
       count: doctors.length,
@@ -51,7 +61,7 @@ const getDoctors = async (req, res, next) => {
         pages: Math.ceil(total / parseInt(limit)),
         limit: parseInt(limit)
       },
-      doctors
+      doctors: transformedDoctors
     });
   } catch (error) {
     next(error);
@@ -73,9 +83,19 @@ const getDoctor = async (req, res, next) => {
       });
     }
 
+    // Transform _id to id for frontend compatibility
+    const transformedDoctor = {
+      ...doctor.toObject(),
+      id: doctor._id.toString(),
+      user: {
+        ...doctor.user.toObject(),
+        id: doctor.user._id.toString()
+      }
+    };
+
     res.json({
       success: true,
-      doctor
+      doctor: transformedDoctor
     });
   } catch (error) {
     next(error);

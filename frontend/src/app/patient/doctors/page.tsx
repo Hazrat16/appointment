@@ -41,6 +41,9 @@ export default function DoctorsPage() {
         limit: 12,
       });
 
+      console.log("API Response:", response);
+      console.log("Doctors data:", response.doctors);
+
       if (response.success) {
         if (page === 1) {
           setDoctors(response.doctors || []);
@@ -238,9 +241,11 @@ export default function DoctorsPage() {
                         <div className="mt-4">
                           <Button
                             className="w-full"
-                            onClick={() =>
-                              router.push(`/patient/doctors/${doctor.id}`)
-                            }
+                            onClick={() => {
+                              console.log("Doctor object:", doctor);
+                              console.log("Doctor ID:", doctor.id);
+                              router.push(`/patient/doctors/${doctor.id}`);
+                            }}
                           >
                             <Calendar className="w-4 h-4 mr-2" />
                             Book Appointment
