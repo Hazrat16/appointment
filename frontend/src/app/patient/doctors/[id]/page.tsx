@@ -77,7 +77,10 @@ export default function DoctorBookingPage({
       return;
     }
 
-    fetchDoctor();
+    console.log("Doctor ID from params:", params.id);
+    if (params.id) {
+      fetchDoctor();
+    }
   }, [user, router, params.id]);
 
   useEffect(() => {
@@ -87,6 +90,12 @@ export default function DoctorBookingPage({
   }, [watchedDate, params.id]);
 
   const fetchDoctor = async () => {
+    if (!params.id) {
+      toast.error("Invalid doctor ID");
+      router.push("/patient/doctors");
+      return;
+    }
+
     try {
       setLoading(true);
       const response = await doctorsAPI.getDoctor(params.id);
@@ -106,6 +115,10 @@ export default function DoctorBookingPage({
   };
 
   const fetchAvailability = async (date: string) => {
+    if (!params.id) {
+      return;
+    }
+
     try {
       setLoadingAvailability(true);
       const response = await doctorsAPI.getDoctorAvailability(params.id, date);
