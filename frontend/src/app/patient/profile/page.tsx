@@ -12,6 +12,7 @@ import Input from "@/components/ui/Input";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import { useAuth } from "@/contexts/AuthContext";
 import { authAPI } from "@/lib/api";
+import { UpdateProfileRequest } from "@/types";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Calendar, Mail, MapPin, Phone, User, UserCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -27,10 +28,10 @@ const profileSchema = z.object({
   phone: z.string().min(10, "Phone number must be at least 10 digits"),
   dateOfBirth: z.string().min(1, "Date of birth is required"),
   gender: z.string().min(1, "Gender is required"),
-  address: z.string().min(1, "Address is required"),
   city: z.string().min(1, "City is required"),
   state: z.string().min(1, "State is required"),
   zipCode: z.string().min(1, "ZIP code is required"),
+  country: z.string().min(1, "Country is required"),
   emergencyContactName: z.string().min(1, "Emergency contact name is required"),
   emergencyContactPhone: z
     .string()
@@ -40,7 +41,7 @@ const profileSchema = z.object({
   currentMedications: z.string().optional(),
 });
 
-type ProfileFormData = z.infer<typeof profileSchema>;
+type ProfileFormData = z.infer<typeof profileSchema> & UpdateProfileRequest;
 
 export default function PatientProfilePage() {
   const { user, updateUser } = useAuth();
@@ -64,17 +65,30 @@ export default function PatientProfilePage() {
     }
 
     if (user) {
+      // Format date of birth for date input (YYYY-MM-DD)
+      const formatDateOfBirth = (dateString: string) => {
+        if (!dateString) return "";
+        try {
+          const date = new Date(dateString);
+          return date.toISOString().split("T")[0];
+        } catch (error) {
+          return "";
+        }
+      };
+
       reset({
         firstName: user.firstName || "",
         lastName: user.lastName || "",
         email: user.email || "",
         phone: user.phone || "",
-        dateOfBirth: user.dateOfBirth || "",
-        gender: user.gender || "",
-        address: user.address || "",
-        city: user.city || "",
-        state: user.state || "",
-        zipCode: user.zipCode || "",
+        dateOfBirth: formatDateOfBirth(user.dateOfBirth),
+        gender:
+          (user.gender as "male" | "female" | "other" | "prefer-not-to-say") ||
+          "",
+        city: user.address?.city || user.city || "",
+        state: user.address?.state || user.state || "",
+        zipCode: user.address?.zipCode || user.zipCode || "",
+        country: user.address?.country || user.country || "",
         emergencyContactName: user.emergencyContactName || "",
         emergencyContactPhone: user.emergencyContactPhone || "",
         medicalHistory: user.medicalHistory || "",
@@ -90,7 +104,7 @@ export default function PatientProfilePage() {
       setSaving(true);
       const response = await authAPI.updateProfile(data);
 
-      if (response.success) {
+      if (response.success && response.user) {
         updateUser(response.user);
         toast.success("Profile updated successfully!");
       } else {
@@ -164,14 +178,28 @@ export default function PatientProfilePage() {
                   </div>
                   <div className="flex items-center text-sm text-gray-600">
                     <MapPin className="w-4 h-4 mr-2" />
-                    {user?.city && user?.state
-                      ? `${user.city}, ${user.state}`
+                    {(user?.address?.city || user?.city) &&
+                    (user?.address?.state || user?.state)
+                      ? `${user.address?.city || user.city}, ${
+                          user.address?.state || user.state
+                        }${
+                          user.address?.country || user.country
+                            ? `, ${user.address?.country || user.country}`
+                            : ""
+                        }`
                       : "Not provided"}
                   </div>
                   <div className="flex items-center text-sm text-gray-600">
                     <Calendar className="w-4 h-4 mr-2" />
                     {user?.dateOfBirth
                       ? new Date(user.dateOfBirth).toLocaleDateString()
+                      : "Not provided"}
+                  </div>
+                  <div className="flex items-center text-sm text-gray-600">
+                    <User className="w-4 h-4 mr-2" />
+                    {user?.gender
+                      ? user.gender.charAt(0).toUpperCase() +
+                        user.gender.slice(1)
                       : "Not provided"}
                   </div>
                 </div>
@@ -275,44 +303,42 @@ export default function PatientProfilePage() {
                     <h3 className="text-lg font-medium text-gray-900 mb-4">
                       Address Information
                     </h3>
-                    <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Address <span className="text-red-500">*</span>
+                          City <span className="text-red-500">*</span>
                         </label>
                         <Input
-                          {...register("address")}
-                          error={errors.address?.message}
+                          {...register("city")}
+                          error={errors.city?.message}
                         />
                       </div>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            City <span className="text-red-500">*</span>
-                          </label>
-                          <Input
-                            {...register("city")}
-                            error={errors.city?.message}
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            State <span className="text-red-500">*</span>
-                          </label>
-                          <Input
-                            {...register("state")}
-                            error={errors.state?.message}
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            ZIP Code <span className="text-red-500">*</span>
-                          </label>
-                          <Input
-                            {...register("zipCode")}
-                            error={errors.zipCode?.message}
-                          />
-                        </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          State <span className="text-red-500">*</span>
+                        </label>
+                        <Input
+                          {...register("state")}
+                          error={errors.state?.message}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          ZIP Code <span className="text-red-500">*</span>
+                        </label>
+                        <Input
+                          {...register("zipCode")}
+                          error={errors.zipCode?.message}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Country <span className="text-red-500">*</span>
+                        </label>
+                        <Input
+                          {...register("country")}
+                          error={errors.country?.message}
+                        />
                       </div>
                     </div>
                   </div>

@@ -5,6 +5,7 @@ import {
   LoginRequest,
   RegisterRequest,
   UpdateAppointmentRequest,
+  UpdateProfileRequest,
 } from "@/types";
 import axios, { AxiosResponse } from "axios";
 
@@ -63,7 +64,7 @@ export const authAPI = {
   getMe: (): Promise<ApiResponse> =>
     api.get("/auth/me").then((res) => res.data),
 
-  updateProfile: (data: Partial<RegisterRequest>): Promise<ApiResponse> =>
+  updateProfile: (data: UpdateProfileRequest): Promise<ApiResponse> =>
     api.put("/auth/profile", data).then((res) => res.data),
 
   changePassword: (data: {
