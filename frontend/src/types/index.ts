@@ -18,6 +18,7 @@ export interface User {
   city?: string;
   state?: string;
   zipCode?: string;
+  country?: string;
   emergencyContactName?: string;
   emergencyContactPhone?: string;
   medicalHistory?: string;
@@ -152,6 +153,24 @@ export interface RegisterRequest {
   languages?: string[];
 }
 
+export interface UpdateProfileRequest {
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  phone?: string;
+  dateOfBirth?: string;
+  gender?: "male" | "female" | "other" | "prefer-not-to-say";
+  city?: string;
+  state?: string;
+  zipCode?: string;
+  country?: string;
+  emergencyContactName?: string;
+  emergencyContactPhone?: string;
+  medicalHistory?: string;
+  allergies?: string;
+  currentMedications?: string;
+}
+
 export interface CreateAppointmentRequest {
   doctorId: string;
   appointmentDate: string;
@@ -186,5 +205,6 @@ export interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   register: (userData: RegisterRequest) => Promise<void>;
   logout: () => void;
+  updateUser: (userData: User) => void;
   loading: boolean;
 }
