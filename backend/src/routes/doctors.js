@@ -45,27 +45,17 @@ const verifyDoctorValidation = [
 // @access  Public
 router.get('/', getDoctors);
 
-// @route   GET /api/doctors/:id
-// @desc    Get single doctor
-// @access  Public
-router.get('/:id', getDoctor);
-
-// @route   GET /api/doctors/:id/availability
-// @desc    Get doctor availability for a specific date
-// @access  Public
-router.get('/:id/availability', getDoctorAvailability);
+// @route   GET /api/doctors/dashboard
+// @desc    Get doctor dashboard data
+// @access  Private (Doctor only)
+router.get('/dashboard', protect, authorize('doctor'), getDashboard);
 
 // @route   PUT /api/doctors/availability
 // @desc    Update doctor availability
 // @access  Private (Doctor only)
 router.put('/availability', protect, authorize('doctor'), availabilityValidation, updateAvailability);
 
-// @route   GET /api/doctors/dashboard
-// @desc    Get doctor dashboard data
-// @access  Private (Doctor only)
-router.get('/dashboard', protect, authorize('doctor'), getDashboard);
-
-// Admin routes for doctor verification
+// Admin routes for doctor verification (must come before /:id routes)
 // @route   GET /api/doctors/admin/all
 // @desc    Get all doctors (including unverified) - Admin only
 // @access  Private (Admin only)
@@ -80,5 +70,15 @@ router.put('/admin/:id/verify', protect, authorize('admin'), verifyDoctorValidat
 // @desc    Get doctor verification stats - Admin only
 // @access  Private (Admin only)
 router.get('/admin/stats', protect, authorize('admin'), getDoctorStats);
+
+// @route   GET /api/doctors/:id
+// @desc    Get single doctor
+// @access  Public
+router.get('/:id', getDoctor);
+
+// @route   GET /api/doctors/:id/availability
+// @desc    Get doctor availability for a specific date
+// @access  Public
+router.get('/:id/availability', getDoctorAvailability);
 
 module.exports = router;

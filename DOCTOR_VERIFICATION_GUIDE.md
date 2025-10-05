@@ -286,3 +286,11 @@ The `Doctor` model includes:
 - Ensure all required doctor fields are provided
 - Check education array has at least one entry
 - Verify consultation fee and experience are non-negative numbers
+
+### Route Ordering Issues
+
+If you encounter `CastError: Cast to ObjectId failed for value "dashboard"` errors:
+
+- This happens when specific routes (like `/dashboard`, `/admin/*`) are defined after generic `/:id` routes
+- Ensure specific routes are defined before parameterized routes in your Express router
+- Route order matters: `/dashboard` should come before `/:id`
