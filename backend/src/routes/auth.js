@@ -44,7 +44,40 @@ const registerValidation = [
   body('role')
     .optional()
     .isIn(['patient', 'doctor', 'admin'])
-    .withMessage('Invalid role')
+    .withMessage('Invalid role'),
+  // Doctor-specific validation
+  body('specialization')
+    .if(body('role').equals('doctor'))
+    .notEmpty()
+    .withMessage('Specialization is required for doctors'),
+  body('licenseNumber')
+    .if(body('role').equals('doctor'))
+    .notEmpty()
+    .withMessage('License number is required for doctors'),
+  body('experience')
+    .if(body('role').equals('doctor'))
+    .isInt({ min: 0 })
+    .withMessage('Experience must be a non-negative number'),
+  body('consultationFee')
+    .if(body('role').equals('doctor'))
+    .isFloat({ min: 0 })
+    .withMessage('Consultation fee must be a non-negative number'),
+  body('education')
+    .if(body('role').equals('doctor'))
+    .isArray({ min: 1 })
+    .withMessage('At least one education record is required for doctors'),
+  body('education.*.degree')
+    .if(body('role').equals('doctor'))
+    .notEmpty()
+    .withMessage('Degree is required'),
+  body('education.*.institution')
+    .if(body('role').equals('doctor'))
+    .notEmpty()
+    .withMessage('Institution is required'),
+  body('education.*.year')
+    .if(body('role').equals('doctor'))
+    .isInt({ min: 1950, max: new Date().getFullYear() })
+    .withMessage('Valid graduation year is required')
 ];
 
 const loginValidation = [

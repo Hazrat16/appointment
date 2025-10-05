@@ -323,10 +323,157 @@ const generateTimeSlots = (startTime, endTime, slotDuration, existingAppointment
   return slots;
 };
 
+// @desc    Get all doctors (including unverified) - Admin only
+// @route   GET /api/doctors/admin/all
+// @access  Private (Admin only)
+const getAllDoctorsAdmin = async (req, res, next) => {
+  try {
+    const { verificationStatus, specialization, search, page = 1, limit = 10 } = req.query;
+
+    // Build filter object
+    const filter = {};
+    
+    // Filter by verification status
+    if (verificationStatus !== undefined) {
+      filter.isVerified = verificationStatus === 'true';
+    }
+    
+    if (specialization) {
+      filter.specialization = new RegExp(specialization, 'i');
+    }
+
+    // Build search query
+    let searchQuery = {};
+    if (search) {
+      searchQuery = {
+        $or: [
+          { specialization: new RegExp(search, 'i') },
+          { bio: new RegExp(search, 'i') }
+        ]
+      };
+    }
+
+    // Calculate pagination
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    // Get doctors with pagination
+    const doctors = await Doctor.find({ ...filter, ...searchQuery })
+      .populate('user', 'firstName lastName email phone')
+      .sort({ isVerified: 1, 'rating.average': -1, totalAppointments: -1 })
+      .skip(skip)
+      .limit(parseInt(limit));
+
+    // Get total count for pagination
+    const total = await Doctor.countDocuments({ ...filter, ...searchQuery });
+
+    // Transform _id to id for frontend compatibility
+    const transformedDoctors = doctors.map(doctor => ({
+      ...doctor.toObject(),
+      id: doctor._id.toString(),
+      user: {
+        ...doctor.user.toObject(),
+        id: doctor.user._id.toString()
+      }
+    }));
+
+    res.json({
+      success: true,
+      count: doctors.length,
+      total,
+      pagination: {
+        page: parseInt(page),
+        pages: Math.ceil(total / parseInt(limit)),
+        limit: parseInt(limit)
+      },
+      doctors: transformedDoctors
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Verify/Unverify doctor - Admin only
+// @route   PUT /api/doctors/admin/:id/verify
+// @access  Private (Admin only)
+const verifyDoctor = async (req, res, next) => {
+  try {
+    const { isVerified } = req.body;
+
+    const doctor = await Doctor.findById(req.params.id).populate('user', 'firstName lastName email');
+    
+    if (!doctor) {
+      return res.status(404).json({
+        success: false,
+        message: 'Doctor not found'
+      });
+    }
+
+    doctor.isVerified = isVerified;
+    await doctor.save();
+
+    res.json({
+      success: true,
+      message: `Doctor ${isVerified ? 'verified' : 'unverified'} successfully`,
+      doctor: {
+        ...doctor.toObject(),
+        id: doctor._id.toString(),
+        user: {
+          ...doctor.user.toObject(),
+          id: doctor.user._id.toString()
+        }
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Get doctor verification stats - Admin only
+// @route   GET /api/doctors/admin/stats
+// @access  Private (Admin only)
+const getDoctorStats = async (req, res, next) => {
+  try {
+    const [totalDoctors, verifiedDoctors, unverifiedDoctors] = await Promise.all([
+      Doctor.countDocuments(),
+      Doctor.countDocuments({ isVerified: true }),
+      Doctor.countDocuments({ isVerified: false })
+    ]);
+
+    // Get recent unverified doctors
+    const recentUnverified = await Doctor.find({ isVerified: false })
+      .populate('user', 'firstName lastName email')
+      .sort({ createdAt: -1 })
+      .limit(10);
+
+    res.json({
+      success: true,
+      stats: {
+        total: totalDoctors,
+        verified: verifiedDoctors,
+        unverified: unverifiedDoctors,
+        verificationRate: totalDoctors > 0 ? Math.round((verifiedDoctors / totalDoctors) * 100) : 0
+      },
+      recentUnverified: recentUnverified.map(doctor => ({
+        ...doctor.toObject(),
+        id: doctor._id.toString(),
+        user: {
+          ...doctor.user.toObject(),
+          id: doctor.user._id.toString()
+        }
+      }))
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getDoctors,
   getDoctor,
   getDoctorAvailability,
   updateAvailability,
-  getDashboard
+  getDashboard,
+  getAllDoctorsAdmin,
+  verifyDoctor,
+  getDoctorStats
 };
