@@ -97,6 +97,24 @@ export const doctorsAPI = {
 
   getDashboard: (): Promise<ApiResponse> =>
     api.get("/doctors/dashboard").then((res) => res.data),
+
+  // Admin endpoints
+  getAllDoctorsAdmin: (params?: {
+    verificationStatus?: boolean;
+    specialization?: string;
+    search?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<ApiResponse> =>
+    api.get("/doctors/admin/all", { params }).then((res) => res.data),
+
+  verifyDoctor: (id: string, isVerified: boolean): Promise<ApiResponse> =>
+    api
+      .put(`/doctors/admin/${id}/verify`, { isVerified })
+      .then((res) => res.data),
+
+  getDoctorStats: (): Promise<ApiResponse> =>
+    api.get("/doctors/admin/stats").then((res) => res.data),
 };
 
 // Appointments API
