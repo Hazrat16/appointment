@@ -68,8 +68,8 @@ export default function AdminDashboard() {
       const response = await doctorsAPI.getDoctorStats();
 
       if (response.success) {
-        setStats(response.stats);
-        setRecentUnverified(response.recentUnverified || []);
+        setStats((response as any).stats);
+        setRecentUnverified((response as any).recentUnverified || []);
       }
     } catch (error) {
       console.error("Error fetching dashboard data:", error);
@@ -252,7 +252,7 @@ export default function AdminDashboard() {
                   {recentUnverified.length > 3 && (
                     <div className="text-center">
                       <Link href="/admin/doctors">
-                        <Button variant="link" size="sm">
+                        <Button variant="ghost" size="sm">
                           View All ({recentUnverified.length})
                         </Button>
                       </Link>

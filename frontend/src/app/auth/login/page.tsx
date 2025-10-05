@@ -78,10 +78,6 @@ export default function LoginPage() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-              <div className="text-xs text-gray-500">
-                Debug: loading={loading ? "true" : "false"}, isValid=
-                {isValid ? "true" : "false"}
-              </div>
               <div>
                 <Input
                   {...register("email")}
