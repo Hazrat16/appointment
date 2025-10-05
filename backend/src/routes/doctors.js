@@ -5,7 +5,10 @@ const {
   getDoctor,
   getDoctorAvailability,
   updateAvailability,
-  getDashboard
+  getDashboard,
+  getAllDoctorsAdmin,
+  verifyDoctor,
+  getDoctorStats
 } = require('../controllers/doctorController');
 const { protect, authorize } = require('../middleware/auth');
 
@@ -31,10 +34,42 @@ const availabilityValidation = [
     .withMessage('Slot duration must be between 15 and 120 minutes')
 ];
 
+const verifyDoctorValidation = [
+  body('isVerified')
+    .isBoolean()
+    .withMessage('isVerified must be a boolean value')
+];
+
 // @route   GET /api/doctors
 // @desc    Get all doctors
 // @access  Public
 router.get('/', getDoctors);
+
+// @route   GET /api/doctors/dashboard
+// @desc    Get doctor dashboard data
+// @access  Private (Doctor only)
+router.get('/dashboard', protect, authorize('doctor'), getDashboard);
+
+// @route   PUT /api/doctors/availability
+// @desc    Update doctor availability
+// @access  Private (Doctor only)
+router.put('/availability', protect, authorize('doctor'), availabilityValidation, updateAvailability);
+
+// Admin routes for doctor verification (must come before /:id routes)
+// @route   GET /api/doctors/admin/all
+// @desc    Get all doctors (including unverified) - Admin only
+// @access  Private (Admin only)
+router.get('/admin/all', protect, authorize('admin'), getAllDoctorsAdmin);
+
+// @route   PUT /api/doctors/admin/:id/verify
+// @desc    Verify/Unverify doctor - Admin only
+// @access  Private (Admin only)
+router.put('/admin/:id/verify', protect, authorize('admin'), verifyDoctorValidation, verifyDoctor);
+
+// @route   GET /api/doctors/admin/stats
+// @desc    Get doctor verification stats - Admin only
+// @access  Private (Admin only)
+router.get('/admin/stats', protect, authorize('admin'), getDoctorStats);
 
 // @route   GET /api/doctors/:id
 // @desc    Get single doctor
@@ -45,15 +80,5 @@ router.get('/:id', getDoctor);
 // @desc    Get doctor availability for a specific date
 // @access  Public
 router.get('/:id/availability', getDoctorAvailability);
-
-// @route   PUT /api/doctors/availability
-// @desc    Update doctor availability
-// @access  Private (Doctor only)
-router.put('/availability', protect, authorize('doctor'), availabilityValidation, updateAvailability);
-
-// @route   GET /api/doctors/dashboard
-// @desc    Get doctor dashboard data
-// @access  Private (Doctor only)
-router.get('/dashboard', protect, authorize('doctor'), getDashboard);
 
 module.exports = router;

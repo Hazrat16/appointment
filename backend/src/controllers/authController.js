@@ -43,10 +43,11 @@ const register = async (req, res, next) => {
     });
 
     // If user is a doctor, create doctor profile
+    let doctorProfile = null;
     if (user.role === 'doctor') {
       const { specialization, licenseNumber, experience, education, consultationFee, bio, languages } = req.body;
       
-      await Doctor.create({
+      doctorProfile = await Doctor.create({
         user: user._id,
         specialization,
         licenseNumber,
@@ -61,7 +62,7 @@ const register = async (req, res, next) => {
     // Generate token
     const token = generateToken(user._id);
 
-    res.status(201).json({
+    const response = {
       success: true,
       message: 'User registered successfully',
       token,
@@ -73,7 +74,22 @@ const register = async (req, res, next) => {
         role: user.role,
         phone: user.phone
       }
-    });
+    };
+
+    // Add doctor-specific information if user is a doctor
+    if (user.role === 'doctor' && doctorProfile) {
+      response.doctorProfile = {
+        id: doctorProfile._id,
+        specialization: doctorProfile.specialization,
+        isVerified: doctorProfile.isVerified,
+        verificationStatus: doctorProfile.isVerified ? 'verified' : 'pending',
+        message: doctorProfile.isVerified 
+          ? 'Your doctor profile is verified and visible to patients'
+          : 'Your doctor profile is pending verification. It will be visible to patients once verified by an administrator.'
+      };
+    }
+
+    res.status(201).json(response);
   } catch (error) {
     next(error);
   }
