@@ -205,3 +205,13 @@ Thumbs.db
 build/
 dist/
 node_modules/
+
+# Deployment
+backups/
+logs/
+*.log
+mongodb-credentials.txt
+
+# Keep deployment templates but ignore actual env files
+!backend/env.production.example
+!frontend/env.production.example
