@@ -12,6 +12,7 @@ const { protect, authorize } = require('../middleware/auth');
 const router = express.Router();
 
 // Validation rules
+// Test comment
 const createAppointmentValidation = [
   body('doctorId')
     .isMongoId()

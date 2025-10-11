@@ -13,54 +13,54 @@ on:
   workflow_dispatch:
 
 env:
-  NODE_VERSION: '18'
+  NODE_VERSION: "18"
 
 jobs:
   # Test and Build Job
   test-and-build:
     name: Test & Build
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-        
+
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-          
+          cache: "npm"
+
       - name: Install Backend Dependencies
         run: |
           cd backend
           npm ci
-          
+
       - name: Install Frontend Dependencies
         run: |
           cd frontend
           npm ci
-          
+
       # - name: Run Backend Tests
       #   run: |
       #     cd backend
       #     npm test
-          
+
       # - name: Run Frontend Tests
       #   run: |
       #     cd frontend
       #     npm test
-          
+
       - name: Build Frontend
         run: |
           cd frontend
           npm run build
-          
+
       - name: Check for linting errors
         run: |
           cd frontend
           npm run lint || true
-          
+
   # Deploy to Production
   deploy-production:
     name: Deploy to Production
@@ -70,11 +70,11 @@ jobs:
     environment:
       name: production
       url: https://${{ secrets.PRODUCTION_DOMAIN }}
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-        
+
       - name: Deploy to Production VPS
         uses: appleboy/ssh-action@master
         with:
@@ -84,65 +84,65 @@ jobs:
           port: ${{ secrets.PRODUCTION_VPS_PORT || 22 }}
           script: |
             set -e
-            
+
             echo "🚀 Starting deployment to production..."
-            
+
             # Navigate to project directory
             cd /var/www/appointment
-            
+
             # Create backup before deployment
             echo "📦 Creating backup..."
             bash deployment/manual/manual-backup.sh
-            
+
             # Pull latest changes
             echo "📥 Pulling latest code..."
             git fetch origin
             git checkout main
             git pull origin main
-            
+
             # Install backend dependencies
             echo "📦 Installing backend dependencies..."
             cd backend
             npm ci --production
-            
+
             # Install frontend dependencies and build
             echo "📦 Installing frontend dependencies..."
             cd ../frontend
             npm ci --production
-            
+
             echo "🔨 Building frontend..."
             npm run build
-            
+
             # Restart applications
             echo "🔄 Restarting applications..."
             cd ..
             pm2 restart ecosystem.config.js --update-env
-            
+
             # Wait for apps to start
             sleep 5
-            
+
             # Health check
             echo "🏥 Running health check..."
             curl -f http://localhost:5000/health || exit 1
-            
+
             # Show status
             echo "📊 Application status:"
             pm2 status
-            
+
             echo "✅ Deployment completed successfully!"
-            
+
       - name: Notify Success
         if: success()
         run: |
           echo "✅ Production deployment successful!"
           echo "🌐 Application URL: https://${{ secrets.PRODUCTION_DOMAIN }}"
-          
+
       - name: Notify Failure
         if: failure()
         run: |
           echo "❌ Production deployment failed!"
           echo "Please check the logs and rollback if necessary."
-          
+
   # Deploy to Staging (optional)
   deploy-staging:
     name: Deploy to Staging
@@ -152,11 +152,11 @@ jobs:
     environment:
       name: staging
       url: https://${{ secrets.STAGING_DOMAIN }}
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-        
+
       - name: Deploy to Staging VPS
         uses: appleboy/ssh-action@master
         with:
@@ -175,8 +175,7 @@ jobs:
             pm2 restart ecosystem.config.js --update-env
             sleep 5
             curl -f http://localhost:5000/health || exit 1
-            
+
       - name: Notify Success
         if: success()
         run: echo "✅ Staging deployment successful!"
-
