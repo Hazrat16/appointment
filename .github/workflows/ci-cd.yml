@@ -92,7 +92,7 @@ jobs:
             
             # Create backup before deployment
             echo "📦 Creating backup..."
-            bash deployment/backup.sh
+            bash deployment/manual/manual-backup.sh
             
             # Pull latest changes
             echo "📥 Pulling latest code..."

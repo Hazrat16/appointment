@@ -1,172 +1,261 @@
-# 📁 Deployment Configuration Files
+# 📁 Deployment Directory
 
-This directory contains all necessary files and scripts for deploying the Appointment Booking System to a production VPS.
+Two deployment approaches available: **CI/CD (Recommended)** and **Manual Deployment**
 
-## 📄 Files Overview
+---
 
-### Configuration Files
+## 📂 Directory Structure
 
-- **`nginx.conf`** - Nginx reverse proxy configuration
-  - Routes API requests to backend (port 5000)
-  - Routes frontend requests to Next.js (port 3000)
-  - SSL/HTTPS configuration
-  - Gzip compression and caching
+```
+deployment/
+├── README.md                    # This file
+├── DEPLOYMENT_SUMMARY.md        # General overview
+├── nginx.conf                   # Nginx configuration (shared)
+├── server-setup.sh              # Initial VPS setup (shared)
+├── mongodb-setup.sh             # MongoDB setup (shared)
+│
+├── cicd/                        # 🤖 CI/CD Automation (Recommended)
+│   ├── CICD_SETUP.md           # Complete CI/CD guide
+│   ├── CICD_QUICKSTART.md      # 5-minute setup
+│   └── setup-cicd-ssh.sh       # SSH key setup for GitHub Actions
+│
+└── manual/                      # 👷 Manual Deployment (Backup)
+    ├── manual-deploy.sh         # Manual deployment script
+    ├── manual-backup.sh         # Manual backup script
+    └── manual-health-check.sh   # Manual health check script
+```
 
-- **`ecosystem.config.js`** (root directory) - PM2 process manager configuration
-  - Manages both backend and frontend processes
-  - Auto-restart on crashes
-  - Log management
-  - Memory limits
+---
 
-### Scripts
+## 🚀 Recommended Approach: CI/CD
 
-- **`server-setup.sh`** - Initial VPS setup script
-  - Installs Node.js, PM2, Nginx, MongoDB
-  - Configures firewall
-  - Creates project directories
-  - Sets up SSL with Certbot
-  - **Run once** when setting up a new server
+**Use this for automated deployment on every push to main.**
 
-- **`deploy.sh`** - Application deployment script
-  - Pulls latest code from Git
-  - Installs dependencies
-  - Builds frontend
-  - Restarts applications
-  - **Run every time** you want to deploy updates
+### Quick Setup:
+1. Read `cicd/CICD_QUICKSTART.md`
+2. Run `bash cicd/setup-cicd-ssh.sh` on your VPS
+3. Add secrets to GitHub
+4. Push to main → automatic deployment! 🎉
 
-### Environment Templates
+### Advantages:
+- ✅ **Automated** - Push and forget
+- ✅ **Fast** - 2-3 minute deployments
+- ✅ **Consistent** - Same process every time
+- ✅ **Monitored** - GitHub Actions logs everything
+- ✅ **Professional** - Industry-standard approach
 
-- **`backend/env.production.example`** - Backend environment variables template
-- **`frontend/env.production.example`** - Frontend environment variables template
+**📚 Documentation:**
+- `cicd/CICD_QUICKSTART.md` - Quick start guide
+- `cicd/CICD_SETUP.md` - Complete documentation
+- `.github/workflows/deploy.yml` - Simple workflow
+- `.github/workflows/ci-cd.yml` - Advanced workflow
 
-### Documentation
+---
 
-- **`DEPLOYMENT.md`** (root directory) - Complete deployment guide
-  - Step-by-step instructions
-  - Troubleshooting tips
-  - Monitoring and maintenance
-  - Security best practices
+## 👷 Backup Approach: Manual Deployment
 
-- **`QUICKSTART.md`** - Quick reference for experienced developers
+**Use this when:**
+- CI/CD is down
+- Testing something manually
+- Learning the deployment process
+- Troubleshooting issues
 
-## 🚀 Usage
-
-### First Time Setup
-
-1. Get a VPS (BanglaHost VPS-1 recommended)
-2. SSH into your server
-3. Run `server-setup.sh` as root
-4. Clone your repository
-5. Configure environment variables
-6. Run `deploy.sh`
-
-### Subsequent Deployments
-
+### Quick Usage:
 ```bash
+# SSH into your VPS
+ssh deploy@your-vps-ip
+
+# Run manual deployment
 cd /var/www/appointment
-bash deployment/deploy.sh
+bash deployment/manual/manual-deploy.sh
 ```
 
-## 📋 Prerequisites
+### Scripts Available:
+- **`manual-deploy.sh`** - Deploy application manually
+- **`manual-backup.sh`** - Create backup
+- **`manual-health-check.sh`** - Check system health
 
-- Ubuntu 20.04+ VPS
-- Root or sudo access
-- Domain name (optional)
-- Git repository
+### Advantages:
+- ✅ **Direct Control** - You see everything happening
+- ✅ **Learning Tool** - Understand the process
+- ✅ **Backup Plan** - When CI/CD fails
+- ✅ **Troubleshooting** - Debug deployment issues
 
-## 🔧 Customization
+---
 
-### Change Ports
+## 🔧 Shared Files
 
-Edit `ecosystem.config.js`:
-```javascript
-env: {
-  PORT: 5000  // Change backend port
-}
-```
+These are used by both approaches:
 
-Edit `nginx.conf`:
-```nginx
-proxy_pass http://localhost:5000;  // Update to match
-```
+### Initial Setup (Run Once):
+- **`server-setup.sh`** - Install Node.js, PM2, Nginx, MongoDB
+- **`mongodb-setup.sh`** - Secure MongoDB setup
 
-### Change Domain
+### Configuration (Always Needed):
+- **`nginx.conf`** - Nginx reverse proxy config
+- **`../ecosystem.config.js`** - PM2 process manager config
 
-Edit `nginx.conf`:
-```nginx
-server_name yourdomain.com www.yourdomain.com;
-```
+---
 
-### Change Project Directory
+## 📊 Comparison
 
-Edit `deploy.sh`:
+| Feature | CI/CD | Manual |
+|---------|-------|--------|
+| **Speed** | ⚡ Fast (automated) | 🐢 Slower (manual steps) |
+| **Effort** | 🎯 Push code only | 💪 SSH and run script |
+| **Consistency** | ✅ Always same | ⚠️ Can vary |
+| **Learning** | 📚 DevOps automation | 🎓 Hands-on process |
+| **Logs** | 📊 GitHub Actions | 📝 Terminal output |
+| **Best For** | Production | Learning/Testing |
+
+---
+
+## 🎯 Recommended Setup
+
+### Step 1: Initial Setup (Once)
 ```bash
-PROJECT_DIR="/var/www/appointment"  // Change path
+# Run on VPS
+ssh root@your-vps-ip
+bash deployment/server-setup.sh
 ```
 
-## 📊 Architecture
+### Step 2: Choose Your Approach
 
-```
-Internet
-    ↓
-Nginx (Port 80/443)
-    ↓
-    ├─→ Frontend (Port 3000) - Next.js
-    └─→ Backend (Port 5000) - Express API
-            ↓
-        MongoDB (Port 27017)
-```
-
-## 🔐 Security Notes
-
-- All environment files (`.env`) are gitignored
-- Never commit production credentials
-- Use strong JWT secrets in production
-- Enable firewall (UFW)
-- Keep SSL certificates updated
-- Regular security updates
-
-## 📞 Support
-
-For detailed instructions, see:
-- [Complete Deployment Guide](../DEPLOYMENT.md)
-- [Quick Start Guide](./QUICKSTART.md)
-
-## 🎯 Quick Commands
-
+#### Option A: CI/CD (Recommended)
 ```bash
-# Check application status
-pm2 status
-
-# View logs
-pm2 logs
-
-# Restart applications
-pm2 restart all
-
-# Check Nginx status
-sudo systemctl status nginx
-
-# Check MongoDB status
-sudo systemctl status mongod
-
-# Deploy updates
-bash deployment/deploy.sh
+# Setup CI/CD
+bash deployment/cicd/setup-cicd-ssh.sh
+# Add secrets to GitHub
+# Push to main → done!
 ```
 
-## 📝 Deployment Checklist
+#### Option B: Manual
+```bash
+# Deploy manually
+bash deployment/manual/manual-deploy.sh
+```
 
-- [ ] VPS server ready
-- [ ] Domain configured (optional)
-- [ ] Run server-setup.sh
-- [ ] Clone repository
-- [ ] Configure environment variables
-- [ ] Update Nginx config with domain
-- [ ] Run deploy.sh
-- [ ] Setup SSL certificate
-- [ ] Test application
-- [ ] Setup monitoring
-- [ ] Configure backups
+#### Option C: Both (Best for Learning)
+- Use CI/CD for regular deployments
+- Keep manual scripts for emergencies
+- Learn both approaches!
 
-Happy deploying! 🚀
+---
 
+## 📚 Documentation Quick Links
+
+### Getting Started:
+- [Deployment Summary](./DEPLOYMENT_SUMMARY.md)
+- [Main Deployment Guide](../DEPLOYMENT.md)
+
+### CI/CD (Automated):
+- [CI/CD Quick Start](./cicd/CICD_QUICKSTART.md) ⭐ Start here!
+- [CI/CD Complete Guide](./cicd/CICD_SETUP.md)
+
+### Manual (Backup):
+- Scripts in `manual/` directory
+- Follow [Main Deployment Guide](../DEPLOYMENT.md)
+
+---
+
+## 🔄 Deployment Workflow
+
+### With CI/CD:
+```bash
+# On your local machine
+git add .
+git commit -m "Update feature"
+git push origin main
+
+# That's it! GitHub Actions deploys automatically
+```
+
+### With Manual:
+```bash
+# On your local machine
+git push origin main
+
+# On VPS
+ssh deploy@your-vps-ip
+cd /var/www/appointment
+bash deployment/manual/manual-deploy.sh
+```
+
+---
+
+## 🎓 Learning Path
+
+### Week 1: Manual Deployment
+- Learn each step manually
+- Understand what's happening
+- Use `manual/` scripts
+
+### Week 2: Setup CI/CD
+- Setup GitHub Actions
+- Automate the process
+- Use `cicd/` approach
+
+### Week 3: Master Both
+- Use CI/CD for production
+- Keep manual scripts for backup
+- Understand when to use each
+
+---
+
+## 🆘 Troubleshooting
+
+### CI/CD Issues?
+See `cicd/CICD_SETUP.md` troubleshooting section
+
+### Manual Deployment Issues?
+See `../DEPLOYMENT.md` troubleshooting section
+
+### Server Issues?
+Run health check:
+```bash
+bash deployment/manual/manual-health-check.sh
+```
+
+---
+
+## ✅ Quick Commands
+
+### CI/CD:
+```bash
+# Push to deploy
+git push origin main
+
+# View deployment
+# Go to GitHub → Actions tab
+```
+
+### Manual:
+```bash
+# Deploy
+bash deployment/manual/manual-deploy.sh
+
+# Backup
+bash deployment/manual/manual-backup.sh
+
+# Health check
+bash deployment/manual/manual-health-check.sh
+```
+
+---
+
+## 🎉 Conclusion
+
+**For Production: Use CI/CD** (`cicd/` directory)
+- Automated, fast, professional
+
+**For Learning/Backup: Use Manual** (`manual/` directory)
+- Hands-on, educational, reliable backup
+
+**Best Practice: Keep both!**
+- Primary: CI/CD
+- Backup: Manual scripts
+- Result: Flexible and robust deployment strategy
+
+---
+
+**Choose your path and start deploying! 🚀**
