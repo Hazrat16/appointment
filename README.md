@@ -118,3 +118,7 @@ NEXT_PUBLIC_API_URL=http://localhost:5000/api
 
 Follow the step-by-step implementation guide in the documentation to build the application incrementally.
 # appointment
+
+## Test CI/CD
+
+This PR tests the CI/CD workflow.
