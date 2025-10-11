@@ -118,3 +118,23 @@ NEXT_PUBLIC_API_URL=http://localhost:5000/api
 
 Follow the step-by-step implementation guide in the documentation to build the application incrementally.
 # appointment
+
+## Test CI/CD
+
+This PR tests the CI/CD workflow.
+
+## Enhanced CI/CD Testing
+
+Testing the enhanced CI/CD pipeline with comprehensive checks:
+- ✅ Code Quality Checks
+- ✅ Security Audits
+- ✅ Linting (Frontend & Backend)
+- ✅ TypeScript Type Checking
+- ✅ Build Verification
+- ✅ Bundle Size Analysis
+
+## CI/CD Debug Test
+
+This commit tests both workflows:
+- Simple Test Workflow (should always run)
+- Enhanced CI/CD Pipeline (comprehensive checks)
