@@ -132,3 +132,9 @@ Testing the enhanced CI/CD pipeline with comprehensive checks:
 - ✅ TypeScript Type Checking
 - ✅ Build Verification
 - ✅ Bundle Size Analysis
+
+## CI/CD Debug Test
+
+This commit tests both workflows:
+- Simple Test Workflow (should always run)
+- Enhanced CI/CD Pipeline (comprehensive checks)
