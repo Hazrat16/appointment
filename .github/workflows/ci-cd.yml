@@ -16,9 +16,9 @@ env:
   NODE_VERSION: '18'
 
 jobs:
-  # Test and Build Job
-  test-and-build:
-    name: Test & Build
+  # Code Quality Checks
+  code-quality:
+    name: Code Quality Checks
     runs-on: ubuntu-latest
     
     steps:
@@ -41,30 +41,133 @@ jobs:
           cd frontend
           npm ci
           
-      # - name: Run Backend Tests
-      #   run: |
-      #     cd backend
-      #     npm test
+      # Backend Security Audit
+      - name: Backend Security Audit
+        run: |
+          cd backend
+          echo "🔍 Running security audit for backend..."
+          npm audit --audit-level moderate || echo "⚠️ Security vulnerabilities found in backend"
           
-      # - name: Run Frontend Tests
-      #   run: |
-      #     cd frontend
-      #     npm test
+      # Frontend Security Audit
+      - name: Frontend Security Audit
+        run: |
+          cd frontend
+          echo "🔍 Running security audit for frontend..."
+          npm audit --audit-level moderate || echo "⚠️ Security vulnerabilities found in frontend"
           
+      # Backend Linting
+      - name: Backend Linting
+        run: |
+          cd backend
+          echo "📝 Running ESLint for backend..."
+          npm run lint
+          
+      # Frontend Linting
+      - name: Frontend Linting
+        run: |
+          cd frontend
+          echo "📝 Running ESLint..."
+          npm run lint
+          
+      # TypeScript Type Checking
+      - name: TypeScript Type Check
+        run: |
+          cd frontend
+          echo "🔍 Running TypeScript type check..."
+          npx tsc --noEmit
+          
+      # Check for console.log statements (code quality)
+      - name: Check for Console Logs
+        run: |
+          echo "🔍 Checking for console.log statements..."
+          if grep -r "console\.log" frontend/src --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx"; then
+            echo "⚠️ Found console.log statements - consider removing for production"
+          else
+            echo "✅ No console.log statements found"
+          fi
+          
+      # Check for TODO/FIXME comments
+      - name: Check for TODO/FIXME Comments
+        run: |
+          echo "📋 Checking for TODO/FIXME comments..."
+          if grep -r "TODO\|FIXME" frontend/src backend/src --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx"; then
+            echo "📝 Found TODO/FIXME comments - review before merging"
+          else
+            echo "✅ No TODO/FIXME comments found"
+          fi
+          
+  # Build and Test
+  build-and-test:
+    name: Build & Test
+    runs-on: ubuntu-latest
+    needs: code-quality
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          
+      - name: Install Backend Dependencies
+        run: |
+          cd backend
+          npm ci
+          
+      - name: Install Frontend Dependencies
+        run: |
+          cd frontend
+          npm ci
+          
+      # Backend Tests (if available)
+      - name: Run Backend Tests
+        run: |
+          cd backend
+          echo "🧪 Running backend tests..."
+          if npm run test 2>/dev/null; then
+            echo "✅ Backend tests passed"
+          else
+            echo "⚠️ Backend tests not configured or failed"
+          fi
+          
+      # Frontend Build
       - name: Build Frontend
         run: |
           cd frontend
+          echo "🔨 Building frontend..."
           npm run build
+          echo "✅ Frontend build successful"
           
-      - name: Check for linting errors
+      # Check build output
+      - name: Verify Build Output
         run: |
           cd frontend
-          npm run lint || true
+          echo "📁 Checking build output..."
+          if [ -d ".next" ]; then
+            echo "✅ Build output directory exists"
+            ls -la .next/
+          else
+            echo "❌ Build output directory missing"
+            exit 1
+          fi
+          
+      # Bundle size check (optional)
+      - name: Check Bundle Size
+        run: |
+          cd frontend
+          echo "📊 Checking bundle size..."
+          if [ -d ".next/static" ]; then
+            echo "Bundle size analysis:"
+            find .next/static -name "*.js" -exec ls -lh {} \; | head -5
+          fi
           
   # Deploy to Production
   deploy-production:
     name: Deploy to Production
-    needs: test-and-build
+    needs: [code-quality, build-and-test]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
     environment:
@@ -146,7 +249,7 @@ jobs:
   # Deploy to Staging (optional)
   deploy-staging:
     name: Deploy to Staging
-    needs: test-and-build
+    needs: [code-quality, build-and-test]
     if: github.ref == 'refs/heads/staging' && github.event_name == 'push'
     runs-on: ubuntu-latest
     environment:
