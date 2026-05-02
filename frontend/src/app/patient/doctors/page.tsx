@@ -3,6 +3,7 @@
 import Button from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
 import Input from "@/components/ui/Input";
+import Select from "@/components/ui/Select";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import { useAuth } from "@/contexts/AuthContext";
 import { doctorsAPI } from "@/lib/api";
@@ -144,23 +145,18 @@ export default function DoctorsPage() {
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Specialization
-                </label>
-                <select
-                  value={specialization}
-                  onChange={handleSpecializationChange}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                >
-                  <option value="">All Specializations</option>
-                  {specializations.map((spec) => (
-                    <option key={spec} value={spec}>
-                      {spec}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <Select
+                label="Specialization"
+                value={specialization}
+                onChange={handleSpecializationChange}
+              >
+                <option value="">All specializations</option>
+                {specializations.map((spec) => (
+                  <option key={spec} value={spec}>
+                    {spec}
+                  </option>
+                ))}
+              </Select>
 
               <div className="flex items-end">
                 <Button

@@ -1,5 +1,6 @@
 "use client";
 
+import { AuthPageLayout } from "@/components/layout/AuthPageLayout";
 import Button from "@/components/ui/Button";
 import {
   Card,
@@ -9,6 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/Card";
 import Input from "@/components/ui/Input";
+import Select from "@/components/ui/Select";
 import { useAuth } from "@/contexts/AuthContext";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Eye, EyeOff, User, UserPlus } from "lucide-react";
@@ -110,83 +112,92 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-2xl w-full space-y-8">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold text-gray-900">Create Account</h1>
-          <p className="mt-2 text-sm text-gray-600">
-            Join our platform to book appointments or manage your practice
-          </p>
-        </div>
+    <AuthPageLayout
+      formWidth="2xl"
+      title="One account for patients and providers."
+      subtitle="Patients book verified doctors; doctors manage availability and visits—all in a clean, modern workspace."
+    >
+      <div className="mb-8 text-center lg:text-left">
+        <p className="text-xs font-semibold uppercase tracking-wider text-primary-600">
+          Create account
+        </p>
+        <h1 className="mt-2 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+          Join CareSlot
+        </h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Choose your role and complete the fields below.
+        </p>
+      </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-center">Sign Up</CardTitle>
-            <CardDescription className="text-center">
-              Fill in your information to create your account
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-              {/* Role Selection */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  I am a:
+      <Card className="border-white/80 shadow-glow">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-center text-lg lg:text-left">
+            Your details
+          </CardTitle>
+          <CardDescription className="text-center lg:text-left">
+            We use this to personalize your dashboard and booking experience.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+            <div>
+              <label className="mb-2 block text-sm font-medium text-foreground">
+                I am a
+              </label>
+              <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                <label className="relative cursor-pointer">
+                  <input
+                    {...register("role")}
+                    type="radio"
+                    value="patient"
+                    className="sr-only"
+                  />
+                  <div
+                    className={`rounded-2xl border-2 p-4 transition-all ${
+                      selectedRole === "patient"
+                        ? "border-primary-500 bg-primary-50/90 shadow-soft ring-1 ring-primary-500/20"
+                        : "border-border bg-white/60 hover:border-secondary-300"
+                    }`}
+                  >
+                    <User className="mx-auto mb-2 h-6 w-6 text-primary-600" />
+                    <div className="text-center">
+                      <div className="font-semibold text-foreground">Patient</div>
+                      <div className="text-xs text-muted-foreground">
+                        Book appointments
+                      </div>
+                    </div>
+                  </div>
                 </label>
-                <div className="grid grid-cols-2 gap-4">
-                  <label className="relative">
-                    <input
-                      {...register("role")}
-                      type="radio"
-                      value="patient"
-                      className="sr-only"
-                    />
-                    <div
-                      className={`p-4 border-2 rounded-lg cursor-pointer transition-colors ${
-                        selectedRole === "patient"
-                          ? "border-primary-500 bg-primary-50"
-                          : "border-gray-200 hover:border-gray-300"
-                      }`}
-                    >
-                      <User className="w-6 h-6 mx-auto mb-2 text-primary-600" />
-                      <div className="text-center">
-                        <div className="font-medium">Patient</div>
-                        <div className="text-sm text-gray-500">
-                          Book appointments
-                        </div>
+                <label className="relative cursor-pointer">
+                  <input
+                    {...register("role")}
+                    type="radio"
+                    value="doctor"
+                    className="sr-only"
+                  />
+                  <div
+                    className={`rounded-2xl border-2 p-4 transition-all ${
+                      selectedRole === "doctor"
+                        ? "border-primary-500 bg-primary-50/90 shadow-soft ring-1 ring-primary-500/20"
+                        : "border-border bg-white/60 hover:border-secondary-300"
+                    }`}
+                  >
+                    <User className="mx-auto mb-2 h-6 w-6 text-primary-600" />
+                    <div className="text-center">
+                      <div className="font-semibold text-foreground">Doctor</div>
+                      <div className="text-xs text-muted-foreground">
+                        Manage practice
                       </div>
                     </div>
-                  </label>
-                  <label className="relative">
-                    <input
-                      {...register("role")}
-                      type="radio"
-                      value="doctor"
-                      className="sr-only"
-                    />
-                    <div
-                      className={`p-4 border-2 rounded-lg cursor-pointer transition-colors ${
-                        selectedRole === "doctor"
-                          ? "border-primary-500 bg-primary-50"
-                          : "border-gray-200 hover:border-gray-300"
-                      }`}
-                    >
-                      <User className="w-6 h-6 mx-auto mb-2 text-primary-600" />
-                      <div className="text-center">
-                        <div className="font-medium">Doctor</div>
-                        <div className="text-sm text-gray-500">
-                          Manage practice
-                        </div>
-                      </div>
-                    </div>
-                  </label>
-                </div>
-                {errors.role && (
-                  <p className="mt-1 text-sm text-red-600">
-                    {errors.role.message}
-                  </p>
-                )}
+                  </div>
+                </label>
               </div>
+              {errors.role && (
+                <p className="mt-2 text-sm font-medium text-error-600">
+                  {errors.role.message}
+                </p>
+              )}
+            </div>
 
               {/* Basic Information */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -213,55 +224,55 @@ export default function RegisterPage() {
                 autoComplete="email"
               />
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <div className="relative">
-                    <Input
-                      {...register("password")}
-                      type={showPassword ? "text" : "password"}
-                      label="Password"
-                      placeholder="Enter your password"
-                      error={errors.password?.message}
-                      autoComplete="new-password"
-                    />
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <Input
+                  {...register("password")}
+                  type={showPassword ? "text" : "password"}
+                  label="Password"
+                  placeholder="••••••••"
+                  error={errors.password?.message}
+                  autoComplete="new-password"
+                  suffix={
                     <button
                       type="button"
-                      className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                      className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                       onClick={() => setShowPassword(!showPassword)}
+                      aria-label={showPassword ? "Hide password" : "Show password"}
                     >
                       {showPassword ? (
-                        <EyeOff className="h-4 w-4 text-gray-400" />
+                        <EyeOff className="h-4 w-4" />
                       ) : (
-                        <Eye className="h-4 w-4 text-gray-400" />
+                        <Eye className="h-4 w-4" />
                       )}
                     </button>
-                  </div>
-                </div>
-                <div>
-                  <div className="relative">
-                    <Input
-                      {...register("confirmPassword")}
-                      type={showConfirmPassword ? "text" : "password"}
-                      label="Confirm Password"
-                      placeholder="Confirm your password"
-                      error={errors.confirmPassword?.message}
-                      autoComplete="new-password"
-                    />
+                  }
+                />
+                <Input
+                  {...register("confirmPassword")}
+                  type={showConfirmPassword ? "text" : "password"}
+                  label="Confirm password"
+                  placeholder="••••••••"
+                  error={errors.confirmPassword?.message}
+                  autoComplete="new-password"
+                  suffix={
                     <button
                       type="button"
-                      className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                      className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                       onClick={() =>
                         setShowConfirmPassword(!showConfirmPassword)
                       }
+                      aria-label={
+                        showConfirmPassword ? "Hide password" : "Show password"
+                      }
                     >
                       {showConfirmPassword ? (
-                        <EyeOff className="h-4 w-4 text-gray-400" />
+                        <EyeOff className="h-4 w-4" />
                       ) : (
-                        <Eye className="h-4 w-4 text-gray-400" />
+                        <Eye className="h-4 w-4" />
                       )}
                     </button>
-                  </div>
-                </div>
+                  }
+                />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -280,31 +291,22 @@ export default function RegisterPage() {
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Gender
-                </label>
-                <select
-                  {...register("gender")}
-                  className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm ring-offset-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2"
-                >
-                  <option value="">Select gender</option>
-                  <option value="male">Male</option>
-                  <option value="female">Female</option>
-                  <option value="other">Other</option>
-                </select>
-                {errors.gender && (
-                  <p className="mt-1 text-sm text-red-600">
-                    {errors.gender.message}
-                  </p>
-                )}
-              </div>
+              <Select
+                {...register("gender")}
+                label="Gender"
+                error={errors.gender?.message}
+              >
+                <option value="">Select gender</option>
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+                <option value="other">Other</option>
+              </Select>
 
               {/* Doctor-specific fields */}
               {selectedRole === "doctor" && (
-                <div className="space-y-4 border-t pt-4">
-                  <h3 className="text-lg font-medium text-gray-900">
-                    Professional Information
+                <div className="space-y-4 rounded-2xl border border-border bg-muted/40 p-4 sm:p-5">
+                  <h3 className="text-base font-semibold text-foreground">
+                    Professional information
                   </h3>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -340,17 +342,17 @@ export default function RegisterPage() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="mb-1.5 block text-sm font-medium text-foreground">
                       Bio
                     </label>
                     <textarea
                       {...register("bio")}
                       rows={3}
-                      className="flex w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm ring-offset-white placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2"
+                      className="flex w-full rounded-xl border border-input bg-white/90 px-3.5 py-2.5 text-sm text-foreground shadow-inner shadow-black/[0.02] placeholder:text-muted-foreground focus-visible:border-primary-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400/50"
                       placeholder="Tell us about your professional background..."
                     />
                     {errors.bio && (
-                      <p className="mt-1 text-sm text-red-600">
+                      <p className="mt-2 text-sm font-medium text-error-600">
                         {errors.bio.message}
                       </p>
                     )}
@@ -365,31 +367,25 @@ export default function RegisterPage() {
                 </div>
               )}
 
-              <Button
-                type="submit"
-                className="w-full"
-                loading={loading}
-                disabled={loading}
-              >
-                <UserPlus className="w-4 h-4 mr-2" />
-                Create Account
+              <Button type="submit" className="w-full" size="lg" loading={loading}>
+                <UserPlus className="h-4 w-4" />
+                Create account
               </Button>
             </form>
 
-            <div className="mt-6 text-center">
-              <p className="text-sm text-gray-600">
+            <div className="mt-8 text-center">
+              <p className="text-sm text-muted-foreground">
                 Already have an account?{" "}
                 <Link
                   href="/auth/login"
-                  className="font-medium text-primary-600 hover:text-primary-500"
+                  className="font-semibold text-primary-600 underline-offset-4 hover:text-primary-700 hover:underline"
                 >
-                  Sign in here
+                  Sign in
                 </Link>
               </p>
             </div>
           </CardContent>
         </Card>
-      </div>
-    </div>
+    </AuthPageLayout>
   );
 }

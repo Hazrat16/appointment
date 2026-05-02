@@ -9,6 +9,7 @@ import {
   CardTitle,
 } from "@/components/ui/Card";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
+import Select from "@/components/ui/Select";
 import { useAuth } from "@/contexts/AuthContext";
 import { doctorsAPI } from "@/lib/api";
 import { getDayName, getShortDayName } from "@/lib/utils";
@@ -221,33 +222,28 @@ export default function AvailabilityPage() {
                       )}
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Day of Week
-                        </label>
-                        <select
-                          value={slot.dayOfWeek}
-                          onChange={(e) =>
-                            updateAvailabilitySlot(
-                              index,
-                              "dayOfWeek",
-                              parseInt(e.target.value)
-                            )
-                          }
-                          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                        >
-                          {daysOfWeek.map((day) => (
-                            <option key={day.value} value={day.value}>
-                              {day.label}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+                      <Select
+                        label="Day of week"
+                        value={slot.dayOfWeek}
+                        onChange={(e) =>
+                          updateAvailabilitySlot(
+                            index,
+                            "dayOfWeek",
+                            parseInt(e.target.value, 10)
+                          )
+                        }
+                      >
+                        {daysOfWeek.map((day) => (
+                          <option key={day.value} value={day.value}>
+                            {day.label}
+                          </option>
+                        ))}
+                      </Select>
 
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Start Time
+                        <label className="mb-1.5 block text-sm font-medium text-foreground">
+                          Start time
                         </label>
                         <input
                           type="time"
@@ -259,13 +255,13 @@ export default function AvailabilityPage() {
                               e.target.value
                             )
                           }
-                          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                          className="flex h-11 w-full rounded-xl border border-input bg-white/90 px-3.5 py-2 text-sm text-foreground shadow-inner shadow-black/[0.02] transition-shadow focus-visible:border-primary-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400/50"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          End Time
+                        <label className="mb-1.5 block text-sm font-medium text-foreground">
+                          End time
                         </label>
                         <input
                           type="time"
@@ -277,33 +273,28 @@ export default function AvailabilityPage() {
                               e.target.value
                             )
                           }
-                          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                          className="flex h-11 w-full rounded-xl border border-input bg-white/90 px-3.5 py-2 text-sm text-foreground shadow-inner shadow-black/[0.02] transition-shadow focus-visible:border-primary-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400/50"
                         />
                       </div>
 
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Slot Duration (min)
-                        </label>
-                        <select
-                          value={slot.slotDuration}
-                          onChange={(e) =>
-                            updateAvailabilitySlot(
-                              index,
-                              "slotDuration",
-                              parseInt(e.target.value)
-                            )
-                          }
-                          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                        >
-                          <option value={15}>15 minutes</option>
-                          <option value={30}>30 minutes</option>
-                          <option value={45}>45 minutes</option>
-                          <option value={60}>60 minutes</option>
-                          <option value={90}>90 minutes</option>
-                          <option value={120}>120 minutes</option>
-                        </select>
-                      </div>
+                      <Select
+                        label="Slot duration (min)"
+                        value={slot.slotDuration}
+                        onChange={(e) =>
+                          updateAvailabilitySlot(
+                            index,
+                            "slotDuration",
+                            parseInt(e.target.value, 10)
+                          )
+                        }
+                      >
+                        <option value={15}>15 minutes</option>
+                        <option value={30}>30 minutes</option>
+                        <option value={45}>45 minutes</option>
+                        <option value={60}>60 minutes</option>
+                        <option value={90}>90 minutes</option>
+                        <option value={120}>120 minutes</option>
+                      </Select>
                     </div>
                   </div>
                 ))}

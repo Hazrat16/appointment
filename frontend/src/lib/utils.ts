@@ -47,30 +47,30 @@ export function getInitials(firstName: string, lastName: string): string {
 export function getStatusColor(status: string): string {
   switch (status.toLowerCase()) {
     case "scheduled":
-      return "bg-blue-100 text-blue-800";
+      return "bg-sky-100/90 text-sky-900 ring-1 ring-sky-200/60";
     case "confirmed":
-      return "bg-green-100 text-green-800";
+      return "bg-emerald-100/90 text-emerald-900 ring-1 ring-emerald-200/60";
     case "completed":
-      return "bg-gray-100 text-gray-800";
+      return "bg-slate-100 text-slate-700 ring-1 ring-slate-200/80";
     case "cancelled":
-      return "bg-red-100 text-red-800";
+      return "bg-rose-100/90 text-rose-900 ring-1 ring-rose-200/60";
     case "no-show":
-      return "bg-yellow-100 text-yellow-800";
+      return "bg-amber-100/90 text-amber-950 ring-1 ring-amber-200/70";
     default:
-      return "bg-gray-100 text-gray-800";
+      return "bg-slate-100 text-slate-700 ring-1 ring-slate-200/80";
   }
 }
 
 export function getRoleColor(role: string): string {
   switch (role.toLowerCase()) {
     case "admin":
-      return "bg-purple-100 text-purple-800";
+      return "bg-violet-100/90 text-violet-900 ring-1 ring-violet-200/60";
     case "doctor":
-      return "bg-blue-100 text-blue-800";
+      return "bg-cyan-100/90 text-cyan-900 ring-1 ring-cyan-200/60";
     case "patient":
-      return "bg-green-100 text-green-800";
+      return "bg-teal-100/90 text-teal-900 ring-1 ring-teal-200/60";
     default:
-      return "bg-gray-100 text-gray-800";
+      return "bg-slate-100 text-slate-700 ring-1 ring-slate-200/80";
   }
 }
 

@@ -1,5 +1,6 @@
 "use client";
 
+import { AuthPageLayout } from "@/components/layout/AuthPageLayout";
 import Button from "@/components/ui/Button";
 import {
   Card,
@@ -33,122 +34,110 @@ export default function LoginPage() {
   const {
     register,
     handleSubmit,
-    formState: { errors, isValid },
-    watch,
+    formState: { errors },
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     mode: "onSubmit",
   });
 
-  const watchedFields = watch();
-  console.log("Form state:", { errors, isValid, loading, watchedFields });
-  console.log("Validation errors:", errors);
-  console.log("Email error:", errors.email);
-  console.log("Password error:", errors.password);
-
   const onSubmit = async (data: LoginFormData) => {
-    console.log("clickedddddddddddddd");
     try {
-      console.log("Login attempt with:", data);
       await login(data.email, data.password);
-      // Navigation will be handled by the AuthContext
       router.push("/");
-    } catch (error) {
-      console.error("Login error:", error);
-      // Error is handled by the AuthContext
+    } catch {
+      // Error toast handled in AuthContext
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold text-gray-900">Welcome Back</h1>
-          <p className="mt-2 text-sm text-gray-600">
-            Sign in to your account to continue
-          </p>
-        </div>
+    <AuthPageLayout
+      title="Healthcare, without the wait-room hassle."
+      subtitle="Book verified providers, manage visits in one place, and keep your care organized from any device."
+    >
+      <div className="mb-8 text-center lg:text-left">
+        <p className="text-xs font-semibold uppercase tracking-wider text-primary-600">
+          Welcome back
+        </p>
+        <h1 className="mt-2 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+          Sign in to your account
+        </h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Use the email and password you registered with.
+        </p>
+      </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-center">Sign In</CardTitle>
-            <CardDescription className="text-center">
-              Enter your credentials to access your account
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-              <div>
-                <Input
-                  {...register("email")}
-                  type="email"
-                  label="Email Address"
-                  placeholder="Enter your email"
-                  error={errors.email?.message}
-                  autoComplete="email"
-                />
+      <Card className="border-white/80 shadow-glow">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-center text-lg lg:text-left">
+            Credentials
+          </CardTitle>
+          <CardDescription className="text-center lg:text-left">
+            Encrypted session · sign out anytime from your dashboard
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+            <Input
+              {...register("email")}
+              type="email"
+              label="Email"
+              placeholder="you@example.com"
+              error={errors.email?.message}
+              autoComplete="email"
+            />
+
+            <Input
+              {...register("password")}
+              type={showPassword ? "text" : "password"}
+              label="Password"
+              placeholder="••••••••"
+              error={errors.password?.message}
+              autoComplete="current-password"
+              suffix={
+                <button
+                  type="button"
+                  className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
+              }
+            />
+
+            <Button type="submit" className="w-full" size="lg" loading={loading}>
+              <LogIn className="h-4 w-4" />
+              Sign in
+            </Button>
+          </form>
+
+          <div className="mt-8">
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-border" />
               </div>
-
-              <div>
-                <div className="relative">
-                  <Input
-                    {...register("password")}
-                    type={showPassword ? "text" : "password"}
-                    label="Password"
-                    placeholder="Enter your password"
-                    error={errors.password?.message}
-                    autoComplete="current-password"
-                  />
-                  <button
-                    type="button"
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                    onClick={() => setShowPassword(!showPassword)}
-                  >
-                    {showPassword ? (
-                      <EyeOff className="h-4 w-4 text-gray-400" />
-                    ) : (
-                      <Eye className="h-4 w-4 text-gray-400" />
-                    )}
-                  </button>
-                </div>
-              </div>
-
-              <Button
-                type="submit"
-                className="w-full"
-                loading={false}
-                disabled={false}
-              >
-                <LogIn className="w-4 h-4 mr-2" />
-                Sign In
-              </Button>
-            </form>
-
-            <div className="mt-6">
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-300" />
-                </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-white text-gray-500">Or</span>
-                </div>
-              </div>
-
-              <div className="mt-6 text-center">
-                <p className="text-sm text-gray-600">
-                  Don't have an account?{" "}
-                  <Link
-                    href="/auth/register"
-                    className="font-medium text-primary-600 hover:text-primary-500"
-                  >
-                    Sign up here
-                  </Link>
-                </p>
+              <div className="relative flex justify-center text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                <span className="bg-card/95 px-3">New here?</span>
               </div>
             </div>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
+
+            <p className="mt-6 text-center text-sm text-muted-foreground">
+              Create an account to book appointments as a patient or list your
+              practice as a doctor.{" "}
+              <Link
+                href="/auth/register"
+                className="font-semibold text-primary-600 underline-offset-4 transition-colors hover:text-primary-700 hover:underline"
+              >
+                Get started
+              </Link>
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    </AuthPageLayout>
   );
 }

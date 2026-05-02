@@ -9,7 +9,7 @@ const Card: React.FC<CardProps> = ({ className, children, ...props }) => {
   return (
     <div
       className={cn(
-        "rounded-lg border bg-card text-card-foreground shadow-sm",
+        "rounded-2xl border border-white/70 bg-card/95 text-card-foreground shadow-card backdrop-blur-md",
         className
       )}
       {...props}
@@ -29,7 +29,7 @@ const CardHeader: React.FC<CardHeaderProps> = ({
   ...props
 }) => {
   return (
-    <div className={cn("flex flex-col space-y-1.5 p-6", className)} {...props}>
+    <div className={cn("flex flex-col space-y-1.5 p-6 sm:p-8", className)} {...props}>
       {children}
     </div>
   );
@@ -47,7 +47,7 @@ const CardTitle: React.FC<CardTitleProps> = ({
   return (
     <h3
       className={cn(
-        "text-2xl font-semibold leading-none tracking-tight",
+        "text-xl font-semibold leading-tight tracking-tight text-foreground sm:text-2xl",
         className
       )}
       {...props}
@@ -68,7 +68,7 @@ const CardDescription: React.FC<CardDescriptionProps> = ({
   ...props
 }) => {
   return (
-    <p className={cn("text-sm text-muted-foreground", className)} {...props}>
+    <p className={cn("text-sm leading-relaxed text-muted-foreground", className)} {...props}>
       {children}
     </p>
   );
@@ -84,7 +84,7 @@ const CardContent: React.FC<CardContentProps> = ({
   ...props
 }) => {
   return (
-    <div className={cn("p-6 pt-0", className)} {...props}>
+    <div className={cn("p-6 pt-0 sm:px-8 sm:pb-8", className)} {...props}>
       {children}
     </div>
   );
@@ -100,7 +100,7 @@ const CardFooter: React.FC<CardFooterProps> = ({
   ...props
 }) => {
   return (
-    <div className={cn("flex items-center p-6 pt-0", className)} {...props}>
+    <div className={cn("flex items-center p-6 pt-0 sm:px-8 sm:pb-8", className)} {...props}>
       {children}
     </div>
   );

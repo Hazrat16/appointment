@@ -9,6 +9,7 @@ import {
   CardTitle,
 } from "@/components/ui/Card";
 import Input from "@/components/ui/Input";
+import Select from "@/components/ui/Select";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import { useAuth } from "@/contexts/AuthContext";
 import { authAPI } from "@/lib/api";
@@ -274,28 +275,21 @@ export default function PatientProfilePage() {
                         error={errors.dateOfBirth?.message}
                       />
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Gender <span className="text-red-500">*</span>
-                      </label>
-                      <select
-                        {...register("gender")}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                      >
-                        <option value="">Select gender</option>
-                        <option value="male">Male</option>
-                        <option value="female">Female</option>
-                        <option value="other">Other</option>
-                        <option value="prefer-not-to-say">
-                          Prefer not to say
-                        </option>
-                      </select>
-                      {errors.gender && (
-                        <p className="text-sm text-red-600 mt-1">
-                          {errors.gender.message}
-                        </p>
-                      )}
-                    </div>
+                    <Select
+                      {...register("gender")}
+                      label={
+                        <>
+                          Gender <span className="text-error-500">*</span>
+                        </>
+                      }
+                      error={errors.gender?.message}
+                    >
+                      <option value="">Select gender</option>
+                      <option value="male">Male</option>
+                      <option value="female">Female</option>
+                      <option value="other">Other</option>
+                      <option value="prefer-not-to-say">Prefer not to say</option>
+                    </Select>
                   </div>
 
                   {/* Address Information */}
