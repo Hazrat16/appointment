@@ -131,5 +131,5 @@ Edit the root [`README.md`](../README.md) **Live demo** section and paste:
 
 ## Alternatives (same env model)
 
-- **Railway / Fly.io:** container or Node start command `node src/app.js`, set the same env vars; keep `TRUST_PROXY=true` behind their proxies.
+- **Railway / Fly.io:** container or Node start command `node dist/src/app.js` (after `npm run build`), set the same env vars; keep `TRUST_PROXY=true` behind their proxies.
 - **API + DB on same host:** possible but not covered here; prefer Atlas for a clear CV story (“managed MongoDB”).

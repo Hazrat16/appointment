@@ -1,7 +1,8 @@
-const Appointment = require('../models/Appointment');
-const Doctor = require('../models/Doctor');
-const { validationResult } = require('express-validator');
-const {
+import type { NextFunction, Request, Response } from 'express';
+import { validationResult } from 'express-validator';
+import { Appointment } from '../models/Appointment';
+import { Doctor } from '../models/Doctor';
+import {
   normalizeAppointmentDay,
   combineUtcDayAndTime,
   minBookingNoticeHours,
@@ -12,39 +13,42 @@ const {
   ACTIVE_STATUSES,
   doctorOwnsAppointment,
   patientOwnsAppointment,
-} = require('../utils/appointmentRules');
+} from '../utils/appointmentRules';
 
-// @desc    Get user appointments
-// @route   GET /api/appointments
-// @access  Private
-const getAppointments = async (req, res, next) => {
+export const getAppointments = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
   try {
-    const { status, page = 1, limit = 10 } = req.query;
-    
-    // Build filter based on user role
-    let filter = {};
+    if (!req.user) {
+      res.status(401).json({ success: false, message: 'Not authenticated' });
+      return;
+    }
+
+    const { status, page = '1', limit = '10' } = req.query;
+
+    const filter: Record<string, unknown> = {};
     if (req.user.role === 'patient') {
       filter.patient = req.user.id;
     } else if (req.user.role === 'doctor') {
       const doctor = await Doctor.findOne({ user: req.user.id });
       if (!doctor) {
-        return res.status(404).json({
+        res.status(404).json({
           success: false,
-          message: 'Doctor profile not found'
+          message: 'Doctor profile not found',
         });
+        return;
       }
       filter.doctor = doctor._id;
     }
 
-    // Add status filter if provided
-    if (status) {
+    if (typeof status === 'string') {
       filter.status = status;
     }
 
-    // Calculate pagination
-    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const skip = (parseInt(String(page), 10) - 1) * parseInt(String(limit), 10);
 
-    // Get appointments
     const appointments = await Appointment.find(filter)
       .populate('patient', 'firstName lastName email phone')
       .populate({
@@ -52,14 +56,13 @@ const getAppointments = async (req, res, next) => {
         select: 'user specialization consultationFee',
         populate: {
           path: 'user',
-          select: 'firstName lastName'
-        }
+          select: 'firstName lastName',
+        },
       })
       .sort({ appointmentDate: -1, startTime: -1 })
       .skip(skip)
-      .limit(parseInt(limit));
+      .limit(parseInt(String(limit), 10));
 
-    // Get total count
     const total = await Appointment.countDocuments(filter);
 
     res.json({
@@ -67,22 +70,28 @@ const getAppointments = async (req, res, next) => {
       count: appointments.length,
       total,
       pagination: {
-        page: parseInt(page),
-        pages: Math.ceil(total / parseInt(limit)),
-        limit: parseInt(limit)
+        page: parseInt(String(page), 10),
+        pages: Math.ceil(total / parseInt(String(limit), 10)),
+        limit: parseInt(String(limit), 10),
       },
-      appointments
+      appointments,
     });
   } catch (error) {
     next(error);
   }
 };
 
-// @desc    Get single appointment
-// @route   GET /api/appointments/:id
-// @access  Private
-const getAppointment = async (req, res, next) => {
+export const getAppointment = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
   try {
+    if (!req.user) {
+      res.status(401).json({ success: false, message: 'Not authenticated' });
+      return;
+    }
+
     const appointment = await Appointment.findById(req.params.id)
       .populate('patient', 'firstName lastName email phone')
       .populate({
@@ -90,15 +99,16 @@ const getAppointment = async (req, res, next) => {
         select: 'user specialization consultationFee',
         populate: {
           path: 'user',
-          select: 'firstName lastName'
-        }
+          select: 'firstName lastName',
+        },
       });
 
     if (!appointment) {
-      return res.status(404).json({
+      res.status(404).json({
         success: false,
-        message: 'Appointment not found'
+        message: 'Appointment not found',
       });
+      return;
     }
 
     const isPatientOwner =
@@ -109,90 +119,112 @@ const getAppointment = async (req, res, next) => {
     const hasAccess = req.user.role === 'admin' || isPatientOwner || isDoctorOwner;
 
     if (!hasAccess) {
-      return res.status(403).json({
+      res.status(403).json({
         success: false,
-        message: 'Access denied'
+        message: 'Access denied',
       });
+      return;
     }
 
     res.json({
       success: true,
-      appointment
+      appointment,
     });
   } catch (error) {
     next(error);
   }
 };
 
-// @desc    Create new appointment
-// @route   POST /api/appointments
-// @access  Private (Patient only)
-const createAppointment = async (req, res, next) => {
+export const createAppointment = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array()
-      });
+    if (!req.user) {
+      res.status(401).json({ success: false, message: 'Not authenticated' });
+      return;
     }
 
-    const { doctorId, appointmentDate, startTime, endTime, symptoms, notes } = req.body;
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array(),
+      });
+      return;
+    }
+
+    const { doctorId, appointmentDate, startTime, endTime, symptoms, notes } = req.body as {
+      doctorId: string;
+      appointmentDate: string;
+      startTime: string;
+      endTime: string;
+      symptoms?: string;
+      notes?: string;
+    };
 
     const doctor = await Doctor.findById(doctorId);
     if (!doctor) {
-      return res.status(404).json({
+      res.status(404).json({
         success: false,
-        message: 'Doctor not found'
+        message: 'Doctor not found',
       });
+      return;
     }
 
     if (!doctor.isVerified) {
-      return res.status(403).json({
+      res.status(403).json({
         success: false,
-        message: 'This doctor is not verified for public booking yet'
+        message: 'This doctor is not verified for public booking yet',
       });
+      return;
     }
 
     const normalizedDay = normalizeAppointmentDay(appointmentDate);
     if (!normalizedDay) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
-        message: 'Invalid appointment date'
+        message: 'Invalid appointment date',
       });
+      return;
     }
 
     const utcDow = normalizedDay.getUTCDay();
     const blocks = await getActiveAvailabilityBlocksForUtcDay(doctorId, utcDow);
     if (!blocks.length) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
-        message: 'Doctor has no availability on this day'
+        message: 'Doctor has no availability on this day',
       });
+      return;
     }
 
     if (!slotFitsAvailabilityBlocks(startTime, endTime, blocks)) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
-        message: 'Selected time is outside this doctor’s available hours'
+        message: 'Selected time is outside this doctor’s available hours',
       });
+      return;
     }
 
     const slotStartInstant = combineUtcDayAndTime(normalizedDay, startTime);
     if (slotStartInstant.getTime() <= Date.now()) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
-        message: 'Appointment time must be in the future'
+        message: 'Appointment time must be in the future',
       });
+      return;
     }
 
     const minMs = minBookingNoticeHours() * 60 * 60 * 1000;
     if (slotStartInstant.getTime() < Date.now() + minMs) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
-        message: `Bookings must be at least ${minBookingNoticeHours()} hour(s) before the appointment start`
+        message: `Bookings must be at least ${minBookingNoticeHours()} hour(s) before the appointment start`,
       });
+      return;
     }
 
     const dayEndExclusive = new Date(normalizedDay);
@@ -201,14 +233,15 @@ const createAppointment = async (req, res, next) => {
     const sameDayApts = await Appointment.find({
       doctor: doctorId,
       appointmentDate: { $gte: normalizedDay, $lt: dayEndExclusive },
-      status: ACTIVE_STATUSES
+      status: ACTIVE_STATUSES,
     });
 
     if (hasOverlapOnDay(sameDayApts, startTime, endTime)) {
-      return res.status(409).json({
+      res.status(409).json({
         success: false,
-        message: 'This time overlaps an existing booking for that doctor'
+        message: 'This time overlaps an existing booking for that doctor',
       });
+      return;
     }
 
     let appointment;
@@ -221,63 +254,74 @@ const createAppointment = async (req, res, next) => {
         endTime,
         consultationFee: doctor.consultationFee,
         symptoms,
-        notes
+        notes,
       });
-    } catch (err) {
-      if (err.code === 11000) {
-        return res.status(409).json({
+    } catch (err: unknown) {
+      const code = typeof err === 'object' && err !== null ? (err as { code?: number }).code : undefined;
+      if (code === 11000) {
+        res.status(409).json({
           success: false,
-          message: 'This time slot was just taken — please choose another'
+          message: 'This time slot was just taken — please choose another',
         });
+        return;
       }
-      return next(err);
+      next(err);
+      return;
     }
 
     await appointment.populate([
       {
         path: 'patient',
-        select: 'firstName lastName email phone'
+        select: 'firstName lastName email phone',
       },
       {
         path: 'doctor',
         select: 'user specialization consultationFee',
         populate: {
           path: 'user',
-          select: 'firstName lastName'
-        }
-      }
+          select: 'firstName lastName',
+        },
+      },
     ]);
 
     res.status(201).json({
       success: true,
       message: 'Appointment booked successfully',
-      appointment
+      appointment,
     });
   } catch (error) {
     next(error);
   }
 };
 
-// @desc    Update appointment
-// @route   PUT /api/appointments/:id
-// @access  Private
-const updateAppointment = async (req, res, next) => {
+export const updateAppointment = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
   try {
+    if (!req.user) {
+      res.status(401).json({ success: false, message: 'Not authenticated' });
+      return;
+    }
+
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         message: 'Validation failed',
-        errors: errors.array()
+        errors: errors.array(),
       });
+      return;
     }
 
     const appointment = await Appointment.findById(req.params.id);
     if (!appointment) {
-      return res.status(404).json({
+      res.status(404).json({
         success: false,
-        message: 'Appointment not found'
+        message: 'Appointment not found',
       });
+      return;
     }
 
     const isDoctorOwner =
@@ -288,49 +332,49 @@ const updateAppointment = async (req, res, next) => {
     const canUpdate = req.user.role === 'admin' || isDoctorOwner || isPatientOwner;
 
     if (!canUpdate) {
-      return res.status(403).json({
+      res.status(403).json({
         success: false,
-        message: 'Access denied'
+        message: 'Access denied',
       });
+      return;
     }
 
-    // Define allowed fields for update based on role
-    let allowedFields = {};
-    
+    const b = req.body as Record<string, unknown>;
+    let allowedFields: Record<string, unknown> = {};
+
     if (req.user.role === 'doctor' || req.user.role === 'admin') {
       allowedFields = {
-        status: req.body.status,
-        prescription: req.body.prescription,
-        diagnosis: req.body.diagnosis,
-        followUpRequired: req.body.followUpRequired,
-        followUpDate: req.body.followUpDate,
-        notes: req.body.notes
+        status: b.status,
+        prescription: b.prescription,
+        diagnosis: b.diagnosis,
+        followUpRequired: b.followUpRequired,
+        followUpDate: b.followUpDate,
+        notes: b.notes,
       };
     } else if (req.user.role === 'patient') {
       allowedFields = {
-        symptoms: req.body.symptoms,
-        notes: req.body.notes
+        symptoms: b.symptoms,
+        notes: b.notes,
       };
     }
 
-    // Remove undefined fields
-    Object.keys(allowedFields).forEach(key => 
-      allowedFields[key] === undefined && delete allowedFields[key]
-    );
+    Object.keys(allowedFields).forEach((key) => {
+      if (allowedFields[key] === undefined) delete allowedFields[key];
+    });
 
     if (
       allowedFields.status !== undefined &&
       allowedFields.status !== appointment.status
     ) {
       if (['completed', 'cancelled', 'no-show'].includes(appointment.status)) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
-          message: 'Status cannot be changed from a terminal appointment state'
+          message: 'Status cannot be changed from a terminal appointment state',
         });
+        return;
       }
     }
 
-    // Update appointment
     const updatedAppointment = await Appointment.findByIdAndUpdate(
       req.params.id,
       allowedFields,
@@ -338,56 +382,64 @@ const updateAppointment = async (req, res, next) => {
     ).populate([
       {
         path: 'patient',
-        select: 'firstName lastName email phone'
+        select: 'firstName lastName email phone',
       },
       {
         path: 'doctor',
         select: 'user specialization consultationFee',
         populate: {
           path: 'user',
-          select: 'firstName lastName'
-        }
-      }
+          select: 'firstName lastName',
+        },
+      },
     ]);
 
     res.json({
       success: true,
       message: 'Appointment updated successfully',
-      appointment: updatedAppointment
+      appointment: updatedAppointment,
     });
   } catch (error) {
     next(error);
   }
 };
 
-// @desc    Cancel appointment
-// @route   DELETE /api/appointments/:id
-// @access  Private
-const cancelAppointment = async (req, res, next) => {
+export const cancelAppointment = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
   try {
-    const { cancellationReason } = req.body;
+    if (!req.user) {
+      res.status(401).json({ success: false, message: 'Not authenticated' });
+      return;
+    }
+
+    const { cancellationReason } = req.body as { cancellationReason?: string };
 
     const appointment = await Appointment.findById(req.params.id);
     if (!appointment) {
-      return res.status(404).json({
+      res.status(404).json({
         success: false,
-        message: 'Appointment not found'
+        message: 'Appointment not found',
       });
+      return;
     }
 
-    // Check if appointment can be cancelled
     if (appointment.status === 'cancelled') {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
-        message: 'Appointment is already cancelled'
+        message: 'Appointment is already cancelled',
       });
+      return;
     }
 
     if (appointment.status === 'completed' || appointment.status === 'no-show') {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
-        message: 'This appointment cannot be cancelled'
+        message: 'This appointment cannot be cancelled',
       });
+      return;
     }
 
     const isDoctorOwner =
@@ -398,10 +450,11 @@ const cancelAppointment = async (req, res, next) => {
     const canCancel = req.user.role === 'admin' || isDoctorOwner || isPatientOwner;
 
     if (!canCancel) {
-      return res.status(403).json({
+      res.status(403).json({
         success: false,
-        message: 'Access denied'
+        message: 'Access denied',
       });
+      return;
     }
 
     if (req.user.role === 'patient' && isPatientOwner) {
@@ -411,52 +464,44 @@ const cancelAppointment = async (req, res, next) => {
       );
       const limitMs = cancellationNoticeHours() * 60 * 60 * 1000;
       if (startInstant.getTime() - Date.now() < limitMs) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
-          message: `Patients may cancel only more than ${cancellationNoticeHours()} hour(s) before the appointment start`
+          message: `Patients may cancel only more than ${cancellationNoticeHours()} hour(s) before the appointment start`,
         });
+        return;
       }
     }
 
-    // Update appointment
     const updatedAppointment = await Appointment.findByIdAndUpdate(
       req.params.id,
       {
         status: 'cancelled',
         cancellationReason,
         cancelledBy: req.user.role,
-        cancelledAt: new Date()
+        cancelledAt: new Date(),
       },
       { new: true }
     ).populate([
       {
         path: 'patient',
-        select: 'firstName lastName email phone'
+        select: 'firstName lastName email phone',
       },
       {
         path: 'doctor',
         select: 'user specialization consultationFee',
         populate: {
           path: 'user',
-          select: 'firstName lastName'
-        }
-      }
+          select: 'firstName lastName',
+        },
+      },
     ]);
 
     res.json({
       success: true,
       message: 'Appointment cancelled successfully',
-      appointment: updatedAppointment
+      appointment: updatedAppointment,
     });
   } catch (error) {
     next(error);
   }
-};
-
-module.exports = {
-  getAppointments,
-  getAppointment,
-  createAppointment,
-  updateAppointment,
-  cancelAppointment
 };

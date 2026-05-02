@@ -98,7 +98,7 @@ export default function AdminDoctorsPage() {
       const response = await doctorsAPI.verifyDoctor(doctorId, isVerified);
 
       if (response.success) {
-        toast.success(response.message);
+        toast.success(response.message ?? "Verification updated");
         fetchDoctors(); // Refresh the list
       }
     } catch (error: any) {
@@ -172,14 +172,14 @@ export default function AdminDoctorsPage() {
           <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
             <div className="flex flex-wrap gap-2">
               <Button
-                variant={filter === "all" ? "default" : "outline"}
+                variant={filter === "all" ? "primary" : "outline"}
                 size="sm"
                 onClick={() => setFilter("all")}
               >
                 All ({total})
               </Button>
               <Button
-                variant={filter === "true" ? "default" : "outline"}
+                variant={filter === "true" ? "primary" : "outline"}
                 size="sm"
                 onClick={() => setFilter("true")}
                 className="text-green-600"
@@ -188,7 +188,7 @@ export default function AdminDoctorsPage() {
                 Verified ({doctors.filter((d) => d.isVerified).length})
               </Button>
               <Button
-                variant={filter === "false" ? "default" : "outline"}
+                variant={filter === "false" ? "primary" : "outline"}
                 size="sm"
                 onClick={() => setFilter("false")}
                 className="text-yellow-600"

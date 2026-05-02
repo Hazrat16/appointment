@@ -34,6 +34,11 @@ jobs:
           cd backend
           npm ci
 
+      - name: Backend TypeScript compile
+        run: |
+          cd backend
+          npm run build
+
       - name: Install frontend dependencies
         run: |
           cd frontend
@@ -98,6 +103,11 @@ jobs:
         run: |
           cd backend
           npm ci
+
+      - name: Backend TypeScript compile
+        run: |
+          cd backend
+          npm run build
 
       - name: Install frontend dependencies
         run: |

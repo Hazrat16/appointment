@@ -32,7 +32,7 @@ MongoDB (Mongoose — users, doctors, availability, appointments)
 ```
 
 - **Frontend:** `frontend/` — Next.js App Router, React Query, Axios (`NEXT_PUBLIC_API_URL`).
-- **Backend:** `backend/` — REST under `/api/*`, see routes in `backend/src/routes/`.
+- **Backend:** `backend/` — **TypeScript** Express API, REST under `/api/*` (`backend/src/`). Production entry: `npm run build` → `dist/src/app.js`.
 - **Database:** MongoDB (local, Docker, or Atlas). Connection string in `MONGODB_URI`.
 
 **Hosted stack (Phase 1):** Atlas + Render (API) + Vercel (UI) — step-by-step in [**deployment/PHASE1.md**](./deployment/PHASE1.md). Summary: [**DEPLOYMENT.md**](./DEPLOYMENT.md).
@@ -65,7 +65,7 @@ cp env.example .env
 # Edit .env if needed — MONGODB_URI must point at your MongoDB
 npm install
 npm run seed        # demo users, doctors, availability, appointments (skipped if already seeded)
-npm run dev         # API on http://localhost:5000
+npm run dev         # API on http://localhost:5000 (tsx watch)
 ```
 
 Health check: `GET http://localhost:5000/health`
@@ -166,12 +166,15 @@ Examples: `POST /api/auth/login`, `GET /api/doctors`, `POST /api/appointments` (
 
 ```text
 appointment/
-├── backend/           # Express API
+├── backend/           # Express API (TypeScript)
 │   ├── src/
-│   ├── scripts/seed.js
+│   ├── scripts/seed.ts
+│   ├── tsconfig.json
 │   ├── env.example
 │   └── Dockerfile
-├── frontend/          # Next.js 14
+├── frontend/          # Next.js 14 (TypeScript)
+│   ├── next.config.ts
+│   ├── tailwind.config.ts
 │   └── .env.example
 ├── docker-compose.yml # mongo + api
 ├── render.yaml        # optional Render Blueprint (API)

@@ -13,6 +13,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Eye, EyeOff, User, UserPlus } from "lucide-react";
 import Link from "next/link";
+import { RegisterRequest } from "@/types";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -88,19 +89,21 @@ export default function RegisterPage() {
 
   const onSubmit = async (data: RegisterFormData) => {
     try {
-      const { confirmPassword, ...registerData } = data;
+      const { confirmPassword, languages, ...rest } = data;
 
-      // Process languages if provided
-      if (
-        registerData.languages &&
-        typeof registerData.languages === "string"
-      ) {
-        registerData.languages = registerData.languages
-          .split(",")
-          .map((lang) => lang.trim());
-      }
+      const registerPayload: RegisterRequest = {
+        ...rest,
+        ...(languages?.trim()
+          ? {
+              languages: languages
+                .split(",")
+                .map((lang) => lang.trim())
+                .filter(Boolean),
+            }
+          : {}),
+      };
 
-      await registerUser(registerData);
+      await registerUser(registerPayload);
     } catch (error) {
       // Error is handled by the AuthContext
     }

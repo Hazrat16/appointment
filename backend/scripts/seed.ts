@@ -1,32 +1,29 @@
 /**
  * Demo seed for local development and Docker.
  * Run from backend/: `npm run seed` or `npm run seed:reset`
- *
- * Default: skips if admin@seedmed.dev already exists.
- * --reset: drops users, doctors, availability, appointments then reseeds.
  */
 
-const path = require('path');
-require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
+import path from 'path';
+import dotenv from 'dotenv';
+import mongoose from 'mongoose';
+import { User } from '../src/models/User';
+import { Doctor } from '../src/models/Doctor';
+import { Availability } from '../src/models/Availability';
+import { Appointment } from '../src/models/Appointment';
 
-const mongoose = require('mongoose');
-const User = require('../src/models/User');
-const Doctor = require('../src/models/Doctor');
-const Availability = require('../src/models/Availability');
-const Appointment = require('../src/models/Appointment');
+dotenv.config({ path: path.join(__dirname, '..', '.env') });
 
 const DEMO_PASSWORD = 'DemoPass123';
-
 const reset = process.argv.includes('--reset');
 
-function daysFromNow(days) {
+function daysFromNow(days: number): Date {
   const d = new Date();
   d.setUTCDate(d.getUTCDate() + days);
   d.setUTCHours(12, 0, 0, 0);
   return d;
 }
 
-async function clearCollections() {
+async function clearCollections(): Promise<void> {
   await Appointment.deleteMany({});
   await Availability.deleteMany({});
   await Doctor.deleteMany({});
@@ -34,7 +31,7 @@ async function clearCollections() {
   console.log('Cleared appointments, availability, doctors, users.');
 }
 
-async function seed() {
+async function seed(): Promise<void> {
   const uri = process.env.MONGODB_URI;
   if (!uri) {
     console.error('Missing MONGODB_URI. Copy env.example to .env or export MONGODB_URI.');
@@ -56,7 +53,9 @@ async function seed() {
   } else {
     const existing = await User.findOne({ email: 'admin@seedmed.dev' });
     if (existing) {
-      console.log('Seed already applied (admin@seedmed.dev exists). Use npm run seed:reset to wipe and reseed.');
+      console.log(
+        'Seed already applied (admin@seedmed.dev exists). Use npm run seed:reset to wipe and reseed.'
+      );
       await mongoose.disconnect();
       process.exit(0);
     }
@@ -190,7 +189,7 @@ async function seed() {
   console.log('  Admin:   ', admin.email);
   console.log('  Patient: ', patient1.email, ',', patient2.email);
   console.log('  Doctors: ', docUser1.email, '(verified),', docUser2.email, '(pending verification)');
-  console.log('\nDoctor profile IDs (for API):', doctor1._id.toString(), doctor2._id.toString());
+  console.log('\nDoctor profile IDs (for API):', String(doctor1._id), String(doctor2._id));
 }
 
 seed()
@@ -198,7 +197,7 @@ seed()
     await mongoose.disconnect();
     process.exit(0);
   })
-  .catch(async (err) => {
+  .catch(async (err: unknown) => {
     console.error(err);
     await mongoose.disconnect();
     process.exit(1);

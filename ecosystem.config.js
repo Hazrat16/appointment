@@ -2,7 +2,7 @@ module.exports = {
   apps: [
     {
       name: 'appointment-backend',
-      script: './backend/src/app.js',
+      script: './backend/dist/src/app.js',
       instances: 1,
       exec_mode: 'cluster',
       env: {

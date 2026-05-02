@@ -1,144 +1,152 @@
-const Doctor = require('../models/Doctor');
-const User = require('../models/User');
-const Availability = require('../models/Availability');
-const Appointment = require('../models/Appointment');
-const { validationResult } = require('express-validator');
-const {
+import type { NextFunction, Request, Response } from 'express';
+import type { Types } from 'mongoose';
+import { validationResult } from 'express-validator';
+import { Doctor } from '../models/Doctor';
+import { Availability } from '../models/Availability';
+import { Appointment } from '../models/Appointment';
+import {
   normalizeAppointmentDay,
   ACTIVE_STATUSES,
   timeToMinutes,
   rangesOverlapStrings,
-} = require('../utils/appointmentRules');
+} from '../utils/appointmentRules';
+import type { IAppointment } from '../models/Appointment';
 
-// @desc    Get all doctors
-// @route   GET /api/doctors
-// @access  Public
-const getDoctors = async (req, res, next) => {
+type PopulatedUserRef = { toObject: () => object; _id: Types.ObjectId };
+
+function asPopulatedUser(user: unknown): PopulatedUserRef {
+  return user as PopulatedUserRef;
+}
+
+export const getDoctors = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { specialization, search, page = 1, limit = 10 } = req.query;
+    const { specialization, search, page = '1', limit = '10' } = req.query;
 
-    // Build filter object
-    const filter = { isVerified: true };
-    
-    if (specialization) {
+    const filter: Record<string, unknown> = { isVerified: true };
+
+    if (typeof specialization === 'string') {
       filter.specialization = new RegExp(specialization, 'i');
     }
 
-    // Build search query
-    let searchQuery = {};
-    if (search) {
+    let searchQuery: Record<string, unknown> = {};
+    if (typeof search === 'string') {
       searchQuery = {
-        $or: [
-          { specialization: new RegExp(search, 'i') },
-          { bio: new RegExp(search, 'i') }
-        ]
+        $or: [{ specialization: new RegExp(search, 'i') }, { bio: new RegExp(search, 'i') }],
       };
     }
 
-    // Calculate pagination
-    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const skip = (parseInt(String(page), 10) - 1) * parseInt(String(limit), 10);
 
-    // Get doctors with pagination
     const doctors = await Doctor.find({ ...filter, ...searchQuery })
       .populate('user', 'firstName lastName email phone')
       .sort({ 'rating.average': -1, totalAppointments: -1 })
       .skip(skip)
-      .limit(parseInt(limit));
+      .limit(parseInt(String(limit), 10));
 
-    // Get total count for pagination
     const total = await Doctor.countDocuments({ ...filter, ...searchQuery });
 
-    // Transform _id to id for frontend compatibility
-    const transformedDoctors = doctors.map(doctor => ({
-      ...doctor.toObject(),
-      id: doctor._id.toString(),
-      user: {
-        ...doctor.user.toObject(),
-        id: doctor.user._id.toString()
-      }
-    }));
+    const transformedDoctors = doctors.map((doctor) => {
+      const u = asPopulatedUser(doctor.user);
+      return {
+        ...doctor.toObject(),
+        id: String(doctor._id),
+        user: {
+          ...u.toObject(),
+          id: String(u._id),
+        },
+      };
+    });
 
     res.json({
       success: true,
       count: doctors.length,
       total,
       pagination: {
-        page: parseInt(page),
-        pages: Math.ceil(total / parseInt(limit)),
-        limit: parseInt(limit)
+        page: parseInt(String(page), 10),
+        pages: Math.ceil(total / parseInt(String(limit), 10)),
+        limit: parseInt(String(limit), 10),
       },
-      doctors: transformedDoctors
+      doctors: transformedDoctors,
     });
   } catch (error) {
     next(error);
   }
 };
 
-// @desc    Get single doctor
-// @route   GET /api/doctors/:id
-// @access  Public
-const getDoctor = async (req, res, next) => {
+export const getDoctor = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const doctor = await Doctor.findById(req.params.id)
-      .populate('user', 'firstName lastName email phone');
+    const doctor = await Doctor.findById(req.params.id).populate(
+      'user',
+      'firstName lastName email phone'
+    );
 
     if (!doctor) {
-      return res.status(404).json({
+      res.status(404).json({
         success: false,
-        message: 'Doctor not found'
+        message: 'Doctor not found',
       });
+      return;
     }
 
-    // Transform _id to id for frontend compatibility
+    const u = asPopulatedUser(doctor.user);
     const transformedDoctor = {
       ...doctor.toObject(),
-      id: doctor._id.toString(),
+      id: String(doctor._id),
       user: {
-        ...doctor.user.toObject(),
-        id: doctor.user._id.toString()
-      }
+        ...u.toObject(),
+        id: String(u._id),
+      },
     };
 
     res.json({
       success: true,
-      doctor: transformedDoctor
+      doctor: transformedDoctor,
     });
   } catch (error) {
     next(error);
   }
 };
 
-// @desc    Get doctor availability
-// @route   GET /api/doctors/:id/availability
-// @access  Public
-const getDoctorAvailability = async (req, res, next) => {
+export const getDoctorAvailability = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
   try {
     const { date } = req.query;
-    
-    if (!date) {
-      return res.status(400).json({
+
+    if (!date || typeof date !== 'string') {
+      res.status(400).json({
         success: false,
-        message: 'Date is required'
+        message: 'Date is required',
       });
+      return;
     }
 
     const doctor = await Doctor.findById(req.params.id);
     if (!doctor) {
-      return res.status(404).json({
+      res.status(404).json({
         success: false,
-        message: 'Doctor not found'
+        message: 'Doctor not found',
       });
+      return;
     }
 
     const requested = new Date(date);
     if (Number.isNaN(requested.getTime())) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
-        message: 'Invalid date'
+        message: 'Invalid date',
       });
+      return;
     }
 
     const normalizedDay = normalizeAppointmentDay(requested);
+    if (!normalizedDay) {
+      res.status(400).json({ success: false, message: 'Invalid date' });
+      return;
+    }
+
     const utcDayOfWeek = normalizedDay.getUTCDay();
 
     const dayEndExclusive = new Date(normalizedDay);
@@ -146,26 +154,30 @@ const getDoctorAvailability = async (req, res, next) => {
 
     const weeklyAvailability = await Availability.find({
       doctor: req.params.id,
-      isActive: true
+      isActive: true,
     });
 
     const existingAppointments = await Appointment.find({
       doctor: req.params.id,
       appointmentDate: { $gte: normalizedDay, $lt: dayEndExclusive },
-      status: ACTIVE_STATUSES
+      status: ACTIVE_STATUSES,
     });
 
     const dayBlocks = weeklyAvailability.filter((a) => a.dayOfWeek === utcDayOfWeek);
 
     if (dayBlocks.length === 0) {
-      return res.json({
+      res.json({
         success: true,
         availability: [],
-        message: 'No availability for this day'
+        message: 'No availability for this day',
       });
+      return;
     }
 
-    const mergedSlots = new Map();
+    const mergedSlots = new Map<
+      string,
+      { startTime: string; endTime: string; available: boolean }
+    >();
     for (const block of dayBlocks) {
       const slots = generateTimeSlots(
         block.startTime,
@@ -179,7 +191,7 @@ const getDoctorAvailability = async (req, res, next) => {
         mergedSlots.set(s.startTime, {
           startTime: s.startTime,
           endTime: s.endTime,
-          available
+          available,
         });
       }
     }
@@ -194,46 +206,51 @@ const getDoctorAvailability = async (req, res, next) => {
       doctor: {
         id: doctor._id,
         specialization: doctor.specialization,
-        consultationFee: doctor.consultationFee
-      }
+        consultationFee: doctor.consultationFee,
+      },
     });
   } catch (error) {
     next(error);
   }
 };
 
-// @desc    Update doctor availability
-// @route   PUT /api/doctors/availability
-// @access  Private (Doctor only)
-const updateAvailability = async (req, res, next) => {
+export const updateAvailability = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
   try {
+    if (!req.user) {
+      res.status(401).json({ success: false, message: 'Not authenticated' });
+      return;
+    }
+
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         message: 'Validation failed',
-        errors: errors.array()
+        errors: errors.array(),
       });
+      return;
     }
 
-    const { availability } = req.body;
+    const { availability } = req.body as { availability: Record<string, unknown>[] };
 
-    // Get doctor profile
     const doctor = await Doctor.findOne({ user: req.user.id });
     if (!doctor) {
-      return res.status(404).json({
+      res.status(404).json({
         success: false,
-        message: 'Doctor profile not found'
+        message: 'Doctor profile not found',
       });
+      return;
     }
 
-    // Delete existing availability
     await Availability.deleteMany({ doctor: doctor._id });
 
-    // Create new availability
-    const newAvailability = availability.map(avail => ({
+    const newAvailability = availability.map((avail) => ({
       ...avail,
-      doctor: doctor._id
+      doctor: doctor._id,
     }));
 
     await Availability.insertMany(newAvailability);
@@ -241,27 +258,29 @@ const updateAvailability = async (req, res, next) => {
     res.json({
       success: true,
       message: 'Availability updated successfully',
-      availability: newAvailability
+      availability: newAvailability,
     });
   } catch (error) {
     next(error);
   }
 };
 
-// @desc    Get doctor dashboard data
-// @route   GET /api/doctors/dashboard
-// @access  Private (Doctor only)
-const getDashboard = async (req, res, next) => {
+export const getDashboard = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const doctor = await Doctor.findOne({ user: req.user.id });
-    if (!doctor) {
-      return res.status(404).json({
-        success: false,
-        message: 'Doctor profile not found'
-      });
+    if (!req.user) {
+      res.status(401).json({ success: false, message: 'Not authenticated' });
+      return;
     }
 
-    // Get today's appointments
+    const doctor = await Doctor.findOne({ user: req.user.id });
+    if (!doctor) {
+      res.status(404).json({
+        success: false,
+        message: 'Doctor profile not found',
+      });
+      return;
+    }
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today);
@@ -269,20 +288,18 @@ const getDashboard = async (req, res, next) => {
 
     const todayAppointments = await Appointment.find({
       doctor: doctor._id,
-      appointmentDate: { $gte: today, $lt: tomorrow }
+      appointmentDate: { $gte: today, $lt: tomorrow },
     }).populate('patient', 'firstName lastName phone');
 
-    // Get upcoming appointments (next 7 days)
     const nextWeek = new Date(today);
     nextWeek.setDate(nextWeek.getDate() + 7);
 
     const upcomingAppointments = await Appointment.find({
       doctor: doctor._id,
       appointmentDate: { $gte: tomorrow, $lt: nextWeek },
-      status: { $in: ['scheduled', 'confirmed'] }
+      status: { $in: ['scheduled', 'confirmed'] },
     }).populate('patient', 'firstName lastName phone');
 
-    // Get monthly statistics
     const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
     const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
 
@@ -290,15 +307,15 @@ const getDashboard = async (req, res, next) => {
       {
         $match: {
           doctor: doctor._id,
-          appointmentDate: { $gte: startOfMonth, $lte: endOfMonth }
-        }
+          appointmentDate: { $gte: startOfMonth, $lte: endOfMonth },
+        },
       },
       {
         $group: {
           _id: '$status',
-          count: { $sum: 1 }
-        }
-      }
+          count: { $sum: 1 },
+        },
+      },
     ]);
 
     res.json({
@@ -308,23 +325,27 @@ const getDashboard = async (req, res, next) => {
         upcomingAppointments,
         monthlyStats,
         totalAppointments: doctor.totalAppointments,
-        rating: doctor.rating
-      }
+        rating: doctor.rating,
+      },
     });
   } catch (error) {
     next(error);
   }
 };
 
-const formatMinutesAsHHMM = (totalMinutes) => {
+const formatMinutesAsHHMM = (totalMinutes: number): string => {
   const h = Math.floor(totalMinutes / 60);
   const m = totalMinutes % 60;
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 };
 
-// Helper: slots within one availability block; overlap-aware vs existing appointments
-const generateTimeSlots = (startTime, endTime, slotDuration, existingAppointments) => {
-  const slots = [];
+const generateTimeSlots = (
+  startTime: string,
+  endTime: string,
+  slotDuration: number,
+  existingAppointments: Pick<IAppointment, 'startTime' | 'endTime'>[]
+): { startTime: string; endTime: string; available: boolean }[] => {
+  const slots: { startTime: string; endTime: string; available: boolean }[] = [];
   const start = startTime.split(':').map(Number);
   const end = endTime.split(':').map(Number);
 
@@ -342,7 +363,7 @@ const generateTimeSlots = (startTime, endTime, slotDuration, existingAppointment
     slots.push({
       startTime: slotStart,
       endTime: slotEnd,
-      available: !isBooked
+      available: !isBooked,
     });
 
     currentMinutes += slotDuration;
@@ -351,123 +372,112 @@ const generateTimeSlots = (startTime, endTime, slotDuration, existingAppointment
   return slots;
 };
 
-// @desc    Get all doctors (including unverified) - Admin only
-// @route   GET /api/doctors/admin/all
-// @access  Private (Admin only)
-const getAllDoctorsAdmin = async (req, res, next) => {
+export const getAllDoctorsAdmin = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
   try {
-    const { verificationStatus, specialization, search, page = 1, limit = 10 } = req.query;
+    const { verificationStatus, specialization, search, page = '1', limit = '10' } = req.query;
 
-    // Build filter object
-    const filter = {};
-    
-    // Filter by verification status
+    const filter: Record<string, unknown> = {};
+
     if (verificationStatus !== undefined) {
       filter.isVerified = verificationStatus === 'true';
     }
-    
-    if (specialization) {
+
+    if (typeof specialization === 'string') {
       filter.specialization = new RegExp(specialization, 'i');
     }
 
-    // Build search query
-    let searchQuery = {};
-    if (search) {
+    let searchQuery: Record<string, unknown> = {};
+    if (typeof search === 'string') {
       searchQuery = {
-        $or: [
-          { specialization: new RegExp(search, 'i') },
-          { bio: new RegExp(search, 'i') }
-        ]
+        $or: [{ specialization: new RegExp(search, 'i') }, { bio: new RegExp(search, 'i') }],
       };
     }
 
-    // Calculate pagination
-    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const skip = (parseInt(String(page), 10) - 1) * parseInt(String(limit), 10);
 
-    // Get doctors with pagination
     const doctors = await Doctor.find({ ...filter, ...searchQuery })
       .populate('user', 'firstName lastName email phone')
       .sort({ isVerified: 1, 'rating.average': -1, totalAppointments: -1 })
       .skip(skip)
-      .limit(parseInt(limit));
+      .limit(parseInt(String(limit), 10));
 
-    // Get total count for pagination
     const total = await Doctor.countDocuments({ ...filter, ...searchQuery });
 
-    // Transform _id to id for frontend compatibility
-    const transformedDoctors = doctors.map(doctor => ({
-      ...doctor.toObject(),
-      id: doctor._id.toString(),
-      user: {
-        ...doctor.user.toObject(),
-        id: doctor.user._id.toString()
-      }
-    }));
+    const transformedDoctors = doctors.map((doctor) => {
+      const u = asPopulatedUser(doctor.user);
+      return {
+        ...doctor.toObject(),
+        id: String(doctor._id),
+        user: {
+          ...u.toObject(),
+          id: String(u._id),
+        },
+      };
+    });
 
     res.json({
       success: true,
       count: doctors.length,
       total,
       pagination: {
-        page: parseInt(page),
-        pages: Math.ceil(total / parseInt(limit)),
-        limit: parseInt(limit)
+        page: parseInt(String(page), 10),
+        pages: Math.ceil(total / parseInt(String(limit), 10)),
+        limit: parseInt(String(limit), 10),
       },
-      doctors: transformedDoctors
+      doctors: transformedDoctors,
     });
   } catch (error) {
     next(error);
   }
 };
 
-// @desc    Verify/Unverify doctor - Admin only
-// @route   PUT /api/doctors/admin/:id/verify
-// @access  Private (Admin only)
-const verifyDoctor = async (req, res, next) => {
+export const verifyDoctor = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { isVerified } = req.body;
+    const { isVerified } = req.body as { isVerified: boolean };
 
     const doctor = await Doctor.findById(req.params.id).populate('user', 'firstName lastName email');
-    
+
     if (!doctor) {
-      return res.status(404).json({
+      res.status(404).json({
         success: false,
-        message: 'Doctor not found'
+        message: 'Doctor not found',
       });
+      return;
     }
 
     doctor.isVerified = isVerified;
     await doctor.save();
 
+    const u = asPopulatedUser(doctor.user);
     res.json({
       success: true,
       message: `Doctor ${isVerified ? 'verified' : 'unverified'} successfully`,
       doctor: {
         ...doctor.toObject(),
-        id: doctor._id.toString(),
+        id: String(doctor._id),
         user: {
-          ...doctor.user.toObject(),
-          id: doctor.user._id.toString()
-        }
-      }
+          ...u.toObject(),
+          id: String(u._id),
+        },
+      },
     });
   } catch (error) {
     next(error);
   }
 };
 
-// @desc    Get doctor verification stats - Admin only
-// @route   GET /api/doctors/admin/stats
-// @access  Private (Admin only)
-const getDoctorStats = async (req, res, next) => {
+export const getDoctorStats = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const [totalDoctors, verifiedDoctors, unverifiedDoctors] = await Promise.all([
       Doctor.countDocuments(),
       Doctor.countDocuments({ isVerified: true }),
-      Doctor.countDocuments({ isVerified: false })
+      Doctor.countDocuments({ isVerified: false }),
     ]);
 
-    // Get recent unverified doctors
     const recentUnverified = await Doctor.find({ isVerified: false })
       .populate('user', 'firstName lastName email')
       .sort({ createdAt: -1 })
@@ -479,29 +489,22 @@ const getDoctorStats = async (req, res, next) => {
         total: totalDoctors,
         verified: verifiedDoctors,
         unverified: unverifiedDoctors,
-        verificationRate: totalDoctors > 0 ? Math.round((verifiedDoctors / totalDoctors) * 100) : 0
+        verificationRate:
+          totalDoctors > 0 ? Math.round((verifiedDoctors / totalDoctors) * 100) : 0,
       },
-      recentUnverified: recentUnverified.map(doctor => ({
-        ...doctor.toObject(),
-        id: doctor._id.toString(),
-        user: {
-          ...doctor.user.toObject(),
-          id: doctor.user._id.toString()
-        }
-      }))
+      recentUnverified: recentUnverified.map((doctor) => {
+        const u = asPopulatedUser(doctor.user);
+        return {
+          ...doctor.toObject(),
+          id: String(doctor._id),
+          user: {
+            ...u.toObject(),
+            id: String(u._id),
+          },
+        };
+      }),
     });
   } catch (error) {
     next(error);
   }
-};
-
-module.exports = {
-  getDoctors,
-  getDoctor,
-  getDoctorAvailability,
-  updateAvailability,
-  getDashboard,
-  getAllDoctorsAdmin,
-  verifyDoctor,
-  getDoctorStats
 };

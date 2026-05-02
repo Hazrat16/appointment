@@ -109,7 +109,7 @@ export default function DoctorBookingPage({
       const response = await doctorsAPI.getDoctor(params.id);
       console.log("Doctor API response:", response);
 
-      if (response.success) {
+      if (response.success && response.doctor) {
         setDoctor(response.doctor);
       } else {
         toast.error("Doctor not found");
