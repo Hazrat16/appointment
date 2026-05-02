@@ -2,7 +2,12 @@
 
 import { authAPI } from "@/lib/api";
 import { AuthContextType, RegisterRequest, User } from "@/types";
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
 import toast from "react-hot-toast";
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -19,61 +24,72 @@ interface AuthProviderProps {
   children: React.ReactNode;
 }
 
+/** Only safe when this module runs on the client (see dynamic ssr:false shell). */
+function readPersistedAuth(): { user: User | null; token: string | null } {
+  try {
+    const storedToken = localStorage.getItem("token");
+    const storedUser = localStorage.getItem("user");
+    if (!storedToken || !storedUser) return { user: null, token: null };
+    return { token: storedToken, user: JSON.parse(storedUser) as User };
+  } catch {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    return { user: null, token: null };
+  }
+}
+
+function shouldInvalidateSession(status: number | undefined): boolean {
+  return status === 401 || status === 403 || status === 404;
+}
+
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(null);
+  const [user, setUser] = useState<User | null>(() => readPersistedAuth().user);
+  const [token, setToken] = useState<string | null>(
+    () => readPersistedAuth().token
+  );
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check for existing token and user on mount
-    if (typeof window !== "undefined") {
-      const storedToken = localStorage.getItem("token");
-      const storedUser = localStorage.getItem("user");
-
-      if (storedToken && storedUser) {
-        setToken(storedToken);
-        setUser(JSON.parse(storedUser));
-
-        // Verify token is still valid
-        authAPI
-          .getMe()
-          .then((response) => {
-            if (response.success && response.user) {
-              setUser(response.user);
-              if (typeof window !== "undefined") {
-                localStorage.setItem("user", JSON.stringify(response.user));
-              }
-            } else {
-              // Token is invalid, clear storage
-              if (typeof window !== "undefined") {
-                localStorage.removeItem("token");
-                localStorage.removeItem("user");
-              }
-              setToken(null);
-              setUser(null);
-            }
-          })
-          .catch((error) => {
-            console.log("Token verification failed:", error);
-            // Token is invalid, clear storage
-            if (typeof window !== "undefined") {
-              localStorage.removeItem("token");
-              localStorage.removeItem("user");
-            }
-            setToken(null);
-            setUser(null);
-          })
-          .finally(() => {
-            setLoading(false);
-          });
-      } else {
-        // No stored token, set loading to false immediately
-        setLoading(false);
-      }
-    } else {
+    if (!token) {
       setLoading(false);
+      return;
     }
-  }, []);
+
+    setLoading(true);
+    let cancelled = false;
+    authAPI
+      .getMe()
+      .then((response) => {
+        if (cancelled) return;
+        if (response.success && response.user) {
+          setUser(response.user);
+          localStorage.setItem("user", JSON.stringify(response.user));
+        } else {
+          localStorage.removeItem("token");
+          localStorage.removeItem("user");
+          setToken(null);
+          setUser(null);
+        }
+      })
+      .catch((error: { response?: { status?: number } }) => {
+        if (cancelled) return;
+        const status = error.response?.status;
+        if (shouldInvalidateSession(status)) {
+          localStorage.removeItem("token");
+          localStorage.removeItem("user");
+          setToken(null);
+          setUser(null);
+        }
+        // Network / 5xx / CORS: keep cached session so refresh doesn’t log users out offline.
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [token]);
 
   const login = async (email: string, password: string): Promise<void> => {
     try {
@@ -83,10 +99,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (response.success && response.token && response.user) {
         setToken(response.token);
         setUser(response.user);
-        if (typeof window !== "undefined") {
-          localStorage.setItem("token", response.token);
-          localStorage.setItem("user", JSON.stringify(response.user));
-        }
+        localStorage.setItem("token", response.token);
+        localStorage.setItem("user", JSON.stringify(response.user));
         toast.success("Login successful!");
       } else {
         throw new Error(response.message || "Login failed");
@@ -109,10 +123,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (response.success && response.token && response.user) {
         setToken(response.token);
         setUser(response.user);
-        if (typeof window !== "undefined") {
-          localStorage.setItem("token", response.token);
-          localStorage.setItem("user", JSON.stringify(response.user));
-        }
+        localStorage.setItem("token", response.token);
+        localStorage.setItem("user", JSON.stringify(response.user));
         toast.success("Registration successful!");
       } else {
         throw new Error(response.message || "Registration failed");
@@ -130,18 +142,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const logout = (): void => {
     setUser(null);
     setToken(null);
-    if (typeof window !== "undefined") {
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
-    }
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
     toast.success("Logged out successfully");
   };
 
   const updateUser = (userData: User): void => {
     setUser(userData);
-    if (typeof window !== "undefined") {
-      localStorage.setItem("user", JSON.stringify(userData));
-    }
+    localStorage.setItem("user", JSON.stringify(userData));
   };
 
   const value: AuthContextType = {

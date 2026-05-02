@@ -1,8 +1,24 @@
-import { AuthProvider } from "@/contexts/AuthContext";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
-import { Toaster } from "react-hot-toast";
+import dynamic from "next/dynamic";
 import "./globals.css";
+
+const AppProviders = dynamic(
+  () =>
+    import("@/components/AppProviders").then((mod) => ({
+      default: mod.AppProviders,
+    })),
+  {
+    ssr: false,
+    loading: () => (
+      <div
+        className="min-h-screen bg-gray-50"
+        aria-busy="true"
+        aria-label="Loading application"
+      />
+    ),
+  }
+);
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -22,33 +38,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="h-full">
       <body className={`${inter.className} h-full bg-gray-50`}>
-        <AuthProvider>
-          {children}
-          <Toaster
-            position="top-right"
-            toastOptions={{
-              duration: 4000,
-              style: {
-                background: "#363636",
-                color: "#fff",
-              },
-              success: {
-                duration: 3000,
-                iconTheme: {
-                  primary: "#22c55e",
-                  secondary: "#fff",
-                },
-              },
-              error: {
-                duration: 5000,
-                iconTheme: {
-                  primary: "#ef4444",
-                  secondary: "#fff",
-                },
-              },
-            }}
-          />
-        </AuthProvider>
+        <AppProviders>{children}</AppProviders>
       </body>
     </html>
   );

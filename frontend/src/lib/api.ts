@@ -42,8 +42,9 @@ api.interceptors.response.use(
   },
   (error) => {
     if (error.response?.status === 401) {
-      // Token expired or invalid
-      if (typeof window !== "undefined") {
+      const path = error.config?.url ?? "";
+      const isAuthBootstrap = path.includes("/auth/me");
+      if (typeof window !== "undefined" && !isAuthBootstrap) {
         localStorage.removeItem("token");
         localStorage.removeItem("user");
         window.location.href = "/auth/login";
