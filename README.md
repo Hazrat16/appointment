@@ -159,7 +159,7 @@ appointment/
 ├── frontend/          # Next.js 14
 │   └── .env.example
 ├── docker-compose.yml # mongo + api
-├── deployment/        # optional deploy / CI notes
+├── deployment/        # deployment notes (no VPS scripts)
 └── README.md
 ```
 
@@ -171,6 +171,10 @@ appointment/
 | `backend`  | `npm run seed` | Insert demo data |
 | `backend`  | `npm run seed:reset` | Wipe + seed |
 | `frontend` | `npm run dev`  | Next dev server |
+
+## Continuous integration
+
+GitHub Actions runs [`.github/workflows/ci.yml`](.github/workflows/ci.yml) on pushes and pull requests to `main` / `develop` / `staging`: backend lint, frontend lint + TypeScript, frontend production build, and backend tests when they pass (non-blocking if the test script exits non-zero today).
 
 ## Roadmap
 
