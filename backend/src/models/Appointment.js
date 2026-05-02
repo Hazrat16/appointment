@@ -86,6 +86,27 @@ appointmentSchema.index({ patient: 1, appointmentDate: 1 });
 appointmentSchema.index({ doctor: 1, appointmentDate: 1 });
 appointmentSchema.index({ status: 1 });
 appointmentSchema.index({ appointmentDate: 1, startTime: 1 });
+// Prevent double-booking: one active row per doctor + calendar day + slot start (see Phase 2 docs)
+appointmentSchema.index(
+  { doctor: 1, appointmentDate: 1, startTime: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { status: { $nin: ['cancelled', 'no-show'] } },
+  }
+);
+
+// Normalize calendar day to UTC midnight (consistent overlap + unique index)
+appointmentSchema.pre('save', function(next) {
+  if (this.isModified('appointmentDate') && this.appointmentDate) {
+    const d = new Date(this.appointmentDate);
+    if (!Number.isNaN(d.getTime())) {
+      this.appointmentDate = new Date(
+        Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())
+      );
+    }
+  }
+  next();
+});
 
 // Validate that end time is after start time
 appointmentSchema.pre('save', function(next) {

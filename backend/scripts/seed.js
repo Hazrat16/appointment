@@ -41,6 +41,13 @@ async function seed() {
     process.exit(1);
   }
 
+  if (process.env.NODE_ENV === 'production' && process.env.SEED_ALLOW_PRODUCTION !== 'true') {
+    console.error(
+      'Refusing to seed with NODE_ENV=production (protects real deployments). Use a dev/staging Atlas DB, or set SEED_ALLOW_PRODUCTION=true for an intentional demo database only.'
+    );
+    process.exit(1);
+  }
+
   await mongoose.connect(uri);
   console.log('Connected:', mongoose.connection.host);
 

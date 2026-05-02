@@ -1,0 +1,21 @@
+# Render Blueprint — https://render.com/docs/blueprint-spec
+# Connect this repo in the Render dashboard, then set secret env vars: MONGODB_URI, JWT_SECRET, FRONTEND_URL
+
+services:
+  - type: web
+    name: appointment-api
+    runtime: docker
+    plan: free
+    region: oregon
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: TRUST_PROXY
+        value: "true"
+      # Set these in the dashboard (or mark as sync: false and paste in UI):
+      # MONGODB_URI — from Atlas
+      # JWT_SECRET — long random hex
+      # FRONTEND_URL — https://your-app.vercel.app (comma-separated for multiple)

@@ -3,6 +3,12 @@ const User = require('../models/User');
 const Availability = require('../models/Availability');
 const Appointment = require('../models/Appointment');
 const { validationResult } = require('express-validator');
+const {
+  normalizeAppointmentDay,
+  ACTIVE_STATUSES,
+  timeToMinutes,
+  rangesOverlapStrings,
+} = require('../utils/appointmentRules');
 
 // @desc    Get all doctors
 // @route   GET /api/doctors
@@ -124,30 +130,34 @@ const getDoctorAvailability = async (req, res, next) => {
       });
     }
 
-    // Get doctor's weekly availability
+    const requested = new Date(date);
+    if (Number.isNaN(requested.getTime())) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid date'
+      });
+    }
+
+    const normalizedDay = normalizeAppointmentDay(requested);
+    const utcDayOfWeek = normalizedDay.getUTCDay();
+
+    const dayEndExclusive = new Date(normalizedDay);
+    dayEndExclusive.setUTCDate(dayEndExclusive.getUTCDate() + 1);
+
     const weeklyAvailability = await Availability.find({
       doctor: req.params.id,
       isActive: true
     });
 
-    // Get existing appointments for the date
-    const appointmentDate = new Date(date);
     const existingAppointments = await Appointment.find({
       doctor: req.params.id,
-      appointmentDate: {
-        $gte: new Date(appointmentDate.setHours(0, 0, 0, 0)),
-        $lt: new Date(appointmentDate.setHours(23, 59, 59, 999))
-      },
-      status: { $nin: ['cancelled', 'no-show'] }
+      appointmentDate: { $gte: normalizedDay, $lt: dayEndExclusive },
+      status: ACTIVE_STATUSES
     });
 
-    // Get day of week for the requested date
-    const dayOfWeek = appointmentDate.getDay();
+    const dayBlocks = weeklyAvailability.filter((a) => a.dayOfWeek === utcDayOfWeek);
 
-    // Find availability for this day
-    const dayAvailability = weeklyAvailability.find(avail => avail.dayOfWeek === dayOfWeek);
-
-    if (!dayAvailability) {
+    if (dayBlocks.length === 0) {
       return res.json({
         success: true,
         availability: [],
@@ -155,12 +165,27 @@ const getDoctorAvailability = async (req, res, next) => {
       });
     }
 
-    // Generate time slots
-    const slots = generateTimeSlots(
-      dayAvailability.startTime,
-      dayAvailability.endTime,
-      dayAvailability.slotDuration,
-      existingAppointments
+    const mergedSlots = new Map();
+    for (const block of dayBlocks) {
+      const slots = generateTimeSlots(
+        block.startTime,
+        block.endTime,
+        block.slotDuration,
+        existingAppointments
+      );
+      for (const s of slots) {
+        const prev = mergedSlots.get(s.startTime);
+        const available = s.available && (prev === undefined || prev.available);
+        mergedSlots.set(s.startTime, {
+          startTime: s.startTime,
+          endTime: s.endTime,
+          available
+        });
+      }
+    }
+
+    const slots = Array.from(mergedSlots.values()).sort(
+      (a, b) => timeToMinutes(a.startTime) - timeToMinutes(b.startTime)
     );
 
     res.json({
@@ -291,35 +316,38 @@ const getDashboard = async (req, res, next) => {
   }
 };
 
-// Helper function to generate time slots
+const formatMinutesAsHHMM = (totalMinutes) => {
+  const h = Math.floor(totalMinutes / 60);
+  const m = totalMinutes % 60;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+};
+
+// Helper: slots within one availability block; overlap-aware vs existing appointments
 const generateTimeSlots = (startTime, endTime, slotDuration, existingAppointments) => {
   const slots = [];
   const start = startTime.split(':').map(Number);
   const end = endTime.split(':').map(Number);
-  
+
   let currentMinutes = start[0] * 60 + start[1];
   const endMinutes = end[0] * 60 + end[1];
-  
-  while (currentMinutes < endMinutes) {
-    const slotStart = Math.floor(currentMinutes / 60) + ':' + 
-                     (currentMinutes % 60).toString().padStart(2, '0');
-    const slotEnd = Math.floor((currentMinutes + slotDuration) / 60) + ':' + 
-                   ((currentMinutes + slotDuration) % 60).toString().padStart(2, '0');
-    
-    // Check if slot is already booked
-    const isBooked = existingAppointments.some(apt => 
-      apt.startTime === slotStart
+
+  while (currentMinutes + slotDuration <= endMinutes) {
+    const slotStart = formatMinutesAsHHMM(currentMinutes);
+    const slotEnd = formatMinutesAsHHMM(currentMinutes + slotDuration);
+
+    const isBooked = existingAppointments.some((apt) =>
+      rangesOverlapStrings(apt.startTime, apt.endTime, slotStart, slotEnd)
     );
-    
+
     slots.push({
       startTime: slotStart,
       endTime: slotEnd,
       available: !isBooked
     });
-    
+
     currentMinutes += slotDuration;
   }
-  
+
   return slots;
 };
 

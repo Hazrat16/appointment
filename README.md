@@ -2,6 +2,15 @@
 
 Full-stack doctor appointment booking: patients discover doctors and book slots, doctors manage availability and visits, admins oversee verification and users. Built as a portfolio-grade monorepo (Next.js + Express + MongoDB).
 
+## Live demo
+
+After you complete [Phase 1 hosting](./deployment/PHASE1.md), add your URLs here for recruiters and README visitors:
+
+| Resource | URL |
+|----------|-----|
+| **Web app** | *e.g. `https://….vercel.app`* |
+| **API health** | *e.g. `https://….onrender.com/health`* |
+
 ## Roles
 
 | Role    | Capabilities (high level)                                      |
@@ -25,6 +34,8 @@ MongoDB (Mongoose — users, doctors, availability, appointments)
 - **Frontend:** `frontend/` — Next.js App Router, React Query, Axios (`NEXT_PUBLIC_API_URL`).
 - **Backend:** `backend/` — REST under `/api/*`, see routes in `backend/src/routes/`.
 - **Database:** MongoDB (local, Docker, or Atlas). Connection string in `MONGODB_URI`.
+
+**Hosted stack (Phase 1):** Atlas + Render (API) + Vercel (UI) — step-by-step in [**deployment/PHASE1.md**](./deployment/PHASE1.md). Summary: [**DEPLOYMENT.md**](./DEPLOYMENT.md).
 
 ## Prerequisites
 
@@ -108,6 +119,10 @@ Optional: set `JWT_SECRET` in a root `.env` file when running `docker compose`; 
 | `JWT_SECRET`   | Signing secret for JWTs |
 | `JWT_EXPIRE`   | Token lifetime (e.g. `7d`) |
 | `FRONTEND_URL` | Comma-separated browser origins for CORS |
+| `TRUST_PROXY`  | Set `true` on Render / Fly / Railway (see `deployment/PHASE1.md`) |
+| `LISTEN_HOST`  | Optional bind address (default `0.0.0.0` for containers) |
+| `MIN_BOOKING_NOTICE_HOURS` | Min hours before slot start (default `2`) |
+| `CANCELLATION_NOTICE_HOURS` | Patient cancel must be this many hours before start (default `24`) |
 
 ### Frontend (`frontend/.env.example` → `.env.local`)
 
@@ -159,7 +174,12 @@ appointment/
 ├── frontend/          # Next.js 14
 │   └── .env.example
 ├── docker-compose.yml # mongo + api
-├── deployment/        # deployment notes (no VPS scripts)
+├── render.yaml        # optional Render Blueprint (API)
+├── deployment/
+│   ├── README.md
+│   ├── PHASE1.md      # Atlas + Render + Vercel
+│   └── PHASE2.md      # booking rules & DB constraints
+├── DEPLOYMENT.md
 └── README.md
 ```
 
@@ -178,4 +198,7 @@ GitHub Actions runs [`.github/workflows/ci.yml`](.github/workflows/ci.yml) on pu
 
 ## Roadmap
 
-Phased improvements (deployed demo, booking rules, verification workflow, CI, reminders, etc.) are outlined in project planning; Phase 0 covers runnable stack, env docs, Docker, and seed data.
+- **Phase 0** — Local + Docker + seed + env docs (done).
+- **Phase 1** — Public demo on Atlas + Render + Vercel: [**deployment/PHASE1.md**](./deployment/PHASE1.md).
+- **Phase 2** — Booking rules, overlap prevention, cancellation policy, indexes: [**deployment/PHASE2.md**](./deployment/PHASE2.md).
+- Later — Verification hardening, email reminders, richer CI tests, etc.

@@ -9,15 +9,15 @@ This repository no longer includes **VPS-specific** scripts (SSH deploy, Nginx t
 | Local       | Backend + frontend on the host, MongoDB local or via `docker compose up -d mongo` |
 | Containers  | Root `docker-compose.yml` — API + Mongo (browser still hits the API on `localhost:5000`) |
 
-## Phase 1 (planned)
+## Phase 1 (hosted demo)
 
-Hosted demo without a dedicated VPS, for example:
+Follow **[PHASE1.md](./PHASE1.md)** for Atlas + Render (Docker API) + Vercel, CORS, and README links.
 
-- **Frontend:** Vercel (or similar) for Next.js  
-- **API:** Render, Fly.io, Railway, etc.  
-- **Database:** MongoDB Atlas  
+Templates: `backend/env.production.example`, `frontend/env.production.example`. Optional Blueprint: root **`render.yaml`**.
 
-`backend/env.production.example` and `frontend/env.production.example` stay as templates when you wire those services.
+## Phase 2 (booking core)
+
+See **[PHASE2.md](./PHASE2.md)** — overlap rules, cancellation policy, partial unique index, doctor access fix.
 
 ## Optional: PM2 on any machine
 

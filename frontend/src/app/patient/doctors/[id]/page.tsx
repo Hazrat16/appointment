@@ -319,7 +319,9 @@ export default function DoctorBookingPage({
               <CardHeader>
                 <CardTitle>Book Your Appointment</CardTitle>
                 <CardDescription>
-                  Select a date and time for your appointment
+                  Select a date and time for your appointment. Bookings must be at least 2
+                  hours before the slot. If you need to cancel, do so more than 24 hours before
+                  the visit (policy is enforced on the server).
                 </CardDescription>
               </CardHeader>
               <CardContent>

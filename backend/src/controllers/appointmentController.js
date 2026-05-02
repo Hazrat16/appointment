@@ -1,7 +1,18 @@
 const Appointment = require('../models/Appointment');
 const Doctor = require('../models/Doctor');
-const User = require('../models/User');
 const { validationResult } = require('express-validator');
+const {
+  normalizeAppointmentDay,
+  combineUtcDayAndTime,
+  minBookingNoticeHours,
+  cancellationNoticeHours,
+  getActiveAvailabilityBlocksForUtcDay,
+  slotFitsAvailabilityBlocks,
+  hasOverlapOnDay,
+  ACTIVE_STATUSES,
+  doctorOwnsAppointment,
+  patientOwnsAppointment,
+} = require('../utils/appointmentRules');
 
 // @desc    Get user appointments
 // @route   GET /api/appointments
@@ -90,10 +101,12 @@ const getAppointment = async (req, res, next) => {
       });
     }
 
-    // Check if user has access to this appointment
-    const hasAccess = req.user.role === 'admin' || 
-                     (req.user.role === 'patient' && appointment.patient._id.toString() === req.user.id) ||
-                     (req.user.role === 'doctor' && appointment.doctor._id.toString() === req.user.id);
+    const isPatientOwner =
+      req.user.role === 'patient' && patientOwnsAppointment(req.user.id, appointment);
+    const isDoctorOwner =
+      req.user.role === 'doctor' && (await doctorOwnsAppointment(req.user.id, appointment));
+
+    const hasAccess = req.user.role === 'admin' || isPatientOwner || isDoctorOwner;
 
     if (!hasAccess) {
       return res.status(403).json({
@@ -127,7 +140,6 @@ const createAppointment = async (req, res, next) => {
 
     const { doctorId, appointmentDate, startTime, endTime, symptoms, notes } = req.body;
 
-    // Get doctor details
     const doctor = await Doctor.findById(doctorId);
     if (!doctor) {
       return res.status(404).json({
@@ -136,43 +148,91 @@ const createAppointment = async (req, res, next) => {
       });
     }
 
-    // Check if appointment date is in the future
-    const appointmentDateTime = new Date(appointmentDate);
-    if (appointmentDateTime <= new Date()) {
-      return res.status(400).json({
+    if (!doctor.isVerified) {
+      return res.status(403).json({
         success: false,
-        message: 'Appointment date must be in the future'
+        message: 'This doctor is not verified for public booking yet'
       });
     }
 
-    // Check for conflicting appointments
-    const conflictingAppointment = await Appointment.findOne({
-      doctor: doctorId,
-      appointmentDate: appointmentDateTime,
-      startTime,
-      status: { $nin: ['cancelled', 'no-show'] }
-    });
-
-    if (conflictingAppointment) {
+    const normalizedDay = normalizeAppointmentDay(appointmentDate);
+    if (!normalizedDay) {
       return res.status(400).json({
         success: false,
-        message: 'This time slot is already booked'
+        message: 'Invalid appointment date'
       });
     }
 
-    // Create appointment
-    const appointment = await Appointment.create({
-      patient: req.user.id,
+    const utcDow = normalizedDay.getUTCDay();
+    const blocks = await getActiveAvailabilityBlocksForUtcDay(doctorId, utcDow);
+    if (!blocks.length) {
+      return res.status(400).json({
+        success: false,
+        message: 'Doctor has no availability on this day'
+      });
+    }
+
+    if (!slotFitsAvailabilityBlocks(startTime, endTime, blocks)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Selected time is outside this doctor’s available hours'
+      });
+    }
+
+    const slotStartInstant = combineUtcDayAndTime(normalizedDay, startTime);
+    if (slotStartInstant.getTime() <= Date.now()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Appointment time must be in the future'
+      });
+    }
+
+    const minMs = minBookingNoticeHours() * 60 * 60 * 1000;
+    if (slotStartInstant.getTime() < Date.now() + minMs) {
+      return res.status(400).json({
+        success: false,
+        message: `Bookings must be at least ${minBookingNoticeHours()} hour(s) before the appointment start`
+      });
+    }
+
+    const dayEndExclusive = new Date(normalizedDay);
+    dayEndExclusive.setUTCDate(dayEndExclusive.getUTCDate() + 1);
+
+    const sameDayApts = await Appointment.find({
       doctor: doctorId,
-      appointmentDate: appointmentDateTime,
-      startTime,
-      endTime,
-      consultationFee: doctor.consultationFee,
-      symptoms,
-      notes
+      appointmentDate: { $gte: normalizedDay, $lt: dayEndExclusive },
+      status: ACTIVE_STATUSES
     });
 
-    // Populate the created appointment
+    if (hasOverlapOnDay(sameDayApts, startTime, endTime)) {
+      return res.status(409).json({
+        success: false,
+        message: 'This time overlaps an existing booking for that doctor'
+      });
+    }
+
+    let appointment;
+    try {
+      appointment = await Appointment.create({
+        patient: req.user.id,
+        doctor: doctorId,
+        appointmentDate: normalizedDay,
+        startTime,
+        endTime,
+        consultationFee: doctor.consultationFee,
+        symptoms,
+        notes
+      });
+    } catch (err) {
+      if (err.code === 11000) {
+        return res.status(409).json({
+          success: false,
+          message: 'This time slot was just taken — please choose another'
+        });
+      }
+      return next(err);
+    }
+
     await appointment.populate([
       {
         path: 'patient',
@@ -220,10 +280,12 @@ const updateAppointment = async (req, res, next) => {
       });
     }
 
-    // Check permissions
-    const canUpdate = req.user.role === 'admin' || 
-                     (req.user.role === 'doctor' && appointment.doctor.toString() === req.user.id) ||
-                     (req.user.role === 'patient' && appointment.patient.toString() === req.user.id);
+    const isDoctorOwner =
+      req.user.role === 'doctor' && (await doctorOwnsAppointment(req.user.id, appointment));
+    const isPatientOwner =
+      req.user.role === 'patient' && patientOwnsAppointment(req.user.id, appointment);
+
+    const canUpdate = req.user.role === 'admin' || isDoctorOwner || isPatientOwner;
 
     if (!canUpdate) {
       return res.status(403).json({
@@ -255,6 +317,18 @@ const updateAppointment = async (req, res, next) => {
     Object.keys(allowedFields).forEach(key => 
       allowedFields[key] === undefined && delete allowedFields[key]
     );
+
+    if (
+      allowedFields.status !== undefined &&
+      allowedFields.status !== appointment.status
+    ) {
+      if (['completed', 'cancelled', 'no-show'].includes(appointment.status)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Status cannot be changed from a terminal appointment state'
+        });
+      }
+    }
 
     // Update appointment
     const updatedAppointment = await Appointment.findByIdAndUpdate(
@@ -309,23 +383,39 @@ const cancelAppointment = async (req, res, next) => {
       });
     }
 
-    if (appointment.status === 'completed') {
+    if (appointment.status === 'completed' || appointment.status === 'no-show') {
       return res.status(400).json({
         success: false,
-        message: 'Cannot cancel completed appointment'
+        message: 'This appointment cannot be cancelled'
       });
     }
 
-    // Check permissions
-    const canCancel = req.user.role === 'admin' || 
-                     (req.user.role === 'doctor' && appointment.doctor.toString() === req.user.id) ||
-                     (req.user.role === 'patient' && appointment.patient.toString() === req.user.id);
+    const isDoctorOwner =
+      req.user.role === 'doctor' && (await doctorOwnsAppointment(req.user.id, appointment));
+    const isPatientOwner =
+      req.user.role === 'patient' && patientOwnsAppointment(req.user.id, appointment);
+
+    const canCancel = req.user.role === 'admin' || isDoctorOwner || isPatientOwner;
 
     if (!canCancel) {
       return res.status(403).json({
         success: false,
         message: 'Access denied'
       });
+    }
+
+    if (req.user.role === 'patient' && isPatientOwner) {
+      const startInstant = combineUtcDayAndTime(
+        appointment.appointmentDate,
+        appointment.startTime
+      );
+      const limitMs = cancellationNoticeHours() * 60 * 60 * 1000;
+      if (startInstant.getTime() - Date.now() < limitMs) {
+        return res.status(400).json({
+          success: false,
+          message: `Patients may cancel only more than ${cancellationNoticeHours()} hour(s) before the appointment start`
+        });
+      }
     }
 
     // Update appointment
