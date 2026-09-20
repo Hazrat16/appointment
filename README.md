@@ -146,10 +146,11 @@ Idempotent: if `admin@seedmed.dev` exists, seed does nothing unless you use rese
 | `admin@seedmed.dev` | Admin  | |
 | `patient@seedmed.dev` | Patient | |
 | `jane@seedmed.dev` | Patient | |
-| `drsmith@seedmed.dev` | Doctor | Verified doctor profile |
-| `drjones@seedmed.dev` | Doctor | Pending verification |
+| `drsmith@seedmed.dev` … `drokafor@seedmed.dev` | Doctor | 14 doctors across all 12 specializations shown in the UI filter, each with a full profile, rating, and weekly availability. All verified except `drjones@seedmed.dev` (pending — for demoing the admin verification flow). |
 
 **Password for all demo accounts:** `DemoPass123`
+
+A few sample appointments are seeded too (upcoming + one completed/past), so the patient dashboard and appointments page aren't empty on first login.
 
 Re-seed from scratch (⚠️ deletes all users, doctors, availability, appointments in that database):
 
