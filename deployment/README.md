@@ -19,6 +19,10 @@ Templates: `backend/env.production.example`, `frontend/env.production.example`. 
 
 See **[PHASE2.md](./PHASE2.md)** — overlap rules, cancellation policy, partial unique index, doctor access fix.
 
+## AWS
+
+See **[AWS.md](./AWS.md)** — ECS Fargate + ALB + ECR (primary path), plus App Runner and single-EC2 alternatives, CI/CD via GitHub OIDC, and teardown/cost notes.
+
 ## Optional: PM2 on any machine
 
 If you self-host the Node processes yourself (VM, home server, etc.), you can still use the repo root `ecosystem.config.js` with PM2. That is separate from this folder and not required for local development.

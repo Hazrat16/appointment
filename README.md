@@ -223,4 +223,5 @@ On merge to `main`, a `docker-publish` job builds the backend and frontend Docke
 - **Phase 0** — Local + Docker + seed + env docs (done).
 - **Phase 1** — Public demo on Atlas + Render + Vercel: [**deployment/PHASE1.md**](./deployment/PHASE1.md).
 - **Phase 2** — Booking rules, overlap prevention, cancellation policy, indexes: [**deployment/PHASE2.md**](./deployment/PHASE2.md).
+- **AWS** — ECS Fargate + ALB, App Runner, and single-EC2 alternatives: [**deployment/AWS.md**](./deployment/AWS.md).
 - Later — Verification hardening, email reminders, richer CI tests, etc.
