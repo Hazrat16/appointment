@@ -130,4 +130,6 @@ appointmentSchema.pre(/^find/, function (next) {
   next();
 });
 
+appointmentSchema.set('toJSON', { virtuals: true });
+
 export const Appointment = mongoose.model<IAppointment>('Appointment', appointmentSchema);

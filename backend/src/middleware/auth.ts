@@ -67,16 +67,16 @@ export const protect = async (req: Request, res: Response, next: NextFunction): 
 
 export const authorize =
   (...roles: string[]) =>
-  (req: Request, res: Response, next: NextFunction): void => {
-    if (!req.user || !roles.includes(req.user.role)) {
-      res.status(403).json({
-        success: false,
-        message: `User role '${req.user?.role}' is not authorized to access this route.`,
-      });
-      return;
-    }
-    next();
-  };
+    (req: Request, res: Response, next: NextFunction): void => {
+      if (!req.user || !roles.includes(req.user.role)) {
+        res.status(403).json({
+          success: false,
+          message: `User role '${req.user?.role}' is not authorized to access this route.`,
+        });
+        return;
+      }
+      next();
+    };
 
 export const optionalAuth = async (req: Request, _res: Response, next: NextFunction): Promise<void> => {
   try {

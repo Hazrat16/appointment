@@ -214,7 +214,7 @@ export default function DoctorBookingPage({
             Doctor Not Found
           </h2>
           <p className="text-gray-600 mb-4">
-            The doctor you're looking for doesn't exist.
+            The doctor you&apos;re looking for doesn&apos;t exist.
           </p>
           <Button onClick={() => router.push("/patient/doctors")}>
             Back to Doctors

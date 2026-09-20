@@ -8,63 +8,52 @@ import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import { useAuth } from "@/contexts/AuthContext";
 import { doctorsAPI } from "@/lib/api";
 import { debounce, formatCurrency, getInitials } from "@/lib/utils";
-import { Doctor } from "@/types";
 import { ArrowLeft, Calendar, Clock, Filter, Search, Star } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useInfiniteQuery } from "@tanstack/react-query";
 
 export default function DoctorsPage() {
   const { user } = useAuth();
   const router = useRouter();
-  const [doctors, setDoctors] = useState<Doctor[]>([]);
-  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [specialization, setSpecialization] = useState("");
-  const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
 
   useEffect(() => {
     if (user?.role !== "patient") {
       router.push("/auth/login");
-      return;
     }
+  }, [user, router]);
 
-    fetchDoctors();
-  }, [user, router, page, specialization]);
-
-  const fetchDoctors = async () => {
-    try {
-      setLoading(true);
-      const response = await doctorsAPI.getDoctors({
+  const {
+    data,
+    isLoading,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
+  } = useInfiniteQuery({
+    queryKey: ["doctors", { search: searchTerm, specialization }],
+    initialPageParam: 1,
+    queryFn: ({ pageParam }) =>
+      doctorsAPI.getDoctors({
         search: searchTerm,
         specialization: specialization || undefined,
-        page,
+        page: pageParam,
         limit: 12,
-      });
+      }),
+    getNextPageParam: (lastPage) =>
+      lastPage.pagination && lastPage.pagination.page < lastPage.pagination.pages
+        ? lastPage.pagination.page + 1
+        : undefined,
+    enabled: user?.role === "patient",
+  });
 
-      console.log("API Response:", response);
-      console.log("Doctors data:", response.doctors);
-
-      if (response.success) {
-        if (page === 1) {
-          setDoctors(response.doctors || []);
-        } else {
-          setDoctors((prev) => [...prev, ...(response.doctors || [])]);
-        }
-        setHasMore(
-          response.pagination ? page < response.pagination.pages : false
-        );
-      }
-    } catch (error) {
-      console.error("Error fetching doctors:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const doctors = data?.pages.flatMap((page) => page.doctors || []) ?? [];
+  const loading = isLoading;
+  const hasMore = Boolean(hasNextPage);
 
   const debouncedSearch = debounce((term: string) => {
     setSearchTerm(term);
-    setPage(1);
   }, 500);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -75,11 +64,10 @@ export default function DoctorsPage() {
     e: React.ChangeEvent<HTMLSelectElement>
   ) => {
     setSpecialization(e.target.value);
-    setPage(1);
   };
 
   const loadMore = () => {
-    setPage((prev) => prev + 1);
+    fetchNextPage();
   };
 
   const specializations = [
@@ -97,7 +85,7 @@ export default function DoctorsPage() {
     "Urology",
   ];
 
-  if (loading && page === 1) {
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <LoadingSpinner size="lg" />
@@ -164,7 +152,6 @@ export default function DoctorsPage() {
                   onClick={() => {
                     setSearchTerm("");
                     setSpecialization("");
-                    setPage(1);
                   }}
                   className="w-full"
                 >
@@ -237,11 +224,7 @@ export default function DoctorsPage() {
                         <div className="mt-4">
                           <Button
                             className="w-full"
-                            onClick={() => {
-                              console.log("Doctor object:", doctor);
-                              console.log("Doctor ID:", doctor.id);
-                              router.push(`/patient/doctors/${doctor.id}`);
-                            }}
+                            onClick={() => router.push(`/patient/doctors/${doctor.id}`)}
                           >
                             <Calendar className="w-4 h-4 mr-2" />
                             Book Appointment
@@ -260,8 +243,8 @@ export default function DoctorsPage() {
                 <Button
                   variant="outline"
                   onClick={loadMore}
-                  loading={loading}
-                  disabled={loading}
+                  loading={isFetchingNextPage}
+                  disabled={isFetchingNextPage}
                 >
                   Load More Doctors
                 </Button>
@@ -283,7 +266,6 @@ export default function DoctorsPage() {
                 onClick={() => {
                   setSearchTerm("");
                   setSpecialization("");
-                  setPage(1);
                 }}
               >
                 Clear Filters

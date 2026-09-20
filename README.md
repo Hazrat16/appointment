@@ -1,5 +1,10 @@
 # Doctor appointment platform
 
+[![CI](https://github.com/Hazrat16/appointment/actions/workflows/ci.yml/badge.svg)](https://github.com/Hazrat16/appointment/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/Hazrat16/appointment/actions/workflows/codeql.yml/badge.svg)](https://github.com/Hazrat16/appointment/actions/workflows/codeql.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
+[![Node](https://img.shields.io/badge/node-20.x-339933?logo=node.js&logoColor=white)](./backend/Dockerfile)
+
 Full-stack doctor appointment booking: patients discover doctors and book slots, doctors manage availability and visits, admins oversee verification and users. Built as a portfolio-grade monorepo (Next.js + Express + MongoDB).
 
 ## Live demo
@@ -81,14 +86,15 @@ npm run dev         # App on http://localhost:3000
 
 Ensure `FRONTEND_URL` in `backend/.env` includes `http://localhost:3000` (default in `env.example`) so CORS allows the browser.
 
-## Quick start (API + Mongo in Docker)
+## Quick start (full stack in Docker)
 
-From the repository root:
+From the repository root, this brings up MongoDB, the API, and the Next.js app — all containerized:
 
 ```bash
 docker compose up -d --build
 ```
 
+- Web app: `http://localhost:3000`
 - API: `http://localhost:5000`
 - MongoDB: `localhost:27017` (same DB name `appointment_dev` as in compose)
 
@@ -102,8 +108,6 @@ cp env.example .env
 npm install
 npm run seed
 ```
-
-Then run the Next.js app locally with `NEXT_PUBLIC_API_URL=http://localhost:5000/api` so it talks to the containerized API.
 
 Optional: set `JWT_SECRET` in a root `.env` file when running `docker compose`; otherwise compose uses a dev default (change before any real deployment).
 
@@ -121,6 +125,7 @@ Optional: set `JWT_SECRET` in a root `.env` file when running `docker compose`; 
 | `FRONTEND_URL` | Comma-separated browser origins for CORS |
 | `TRUST_PROXY`  | Set `true` on Render / Fly / Railway (see `deployment/PHASE1.md`) |
 | `LISTEN_HOST`  | Optional bind address (default `0.0.0.0` for containers) |
+| `LOG_LEVEL` | pino log level (default `info`) |
 | `MIN_BOOKING_NOTICE_HOURS` | Min hours before slot start (default `2`) |
 | `CANCELLATION_NOTICE_HOURS` | Patient cancel must be this many hours before start (default `24`) |
 
@@ -141,10 +146,11 @@ Idempotent: if `admin@seedmed.dev` exists, seed does nothing unless you use rese
 | `admin@seedmed.dev` | Admin  | |
 | `patient@seedmed.dev` | Patient | |
 | `jane@seedmed.dev` | Patient | |
-| `drsmith@seedmed.dev` | Doctor | Verified doctor profile |
-| `drjones@seedmed.dev` | Doctor | Pending verification |
+| `drsmith@seedmed.dev` … `drokafor@seedmed.dev` | Doctor | 14 doctors across all 12 specializations shown in the UI filter, each with a full profile, rating, and weekly availability. All verified except `drjones@seedmed.dev` (pending — for demoing the admin verification flow). |
 
 **Password for all demo accounts:** `DemoPass123`
+
+A few sample appointments are seeded too (upcoming + one completed/past), so the patient dashboard and appointments page aren't empty on first login.
 
 Re-seed from scratch (⚠️ deletes all users, doctors, availability, appointments in that database):
 
@@ -161,6 +167,8 @@ cd backend && npm run seed:reset
 | Appointments   | `/api/appointments` |
 
 Examples: `POST /api/auth/login`, `GET /api/doctors`, `POST /api/appointments` (authenticated patient).
+
+**Interactive docs:** Swagger UI is served at `/api/docs` (e.g. `http://localhost:5000/api/docs`) — spec source is [`backend/src/docs/openapi.ts`](./backend/src/docs/openapi.ts).
 
 ## Repository layout
 
@@ -197,11 +205,23 @@ appointment/
 
 ## Continuous integration
 
-GitHub Actions runs [`.github/workflows/ci.yml`](.github/workflows/ci.yml) on pushes and pull requests to `main` / `develop` / `staging`: backend lint, frontend lint + TypeScript, frontend production build, and backend tests when they pass (non-blocking if the test script exits non-zero today).
+GitHub Actions runs [`.github/workflows/ci.yml`](.github/workflows/ci.yml) on pushes and pull requests to `main` / `develop` / `staging`: backend lint, frontend lint + TypeScript, frontend production build, backend security audit (blocking on critical), and backend tests when they pass (non-blocking if the test script exits non-zero today).
+
+On merge to `main`, a `docker-publish` job builds the backend and frontend Docker images and pushes them to GitHub Container Registry:
+
+- `ghcr.io/hazrat16/appointment-backend:latest` / `:<short-sha>`
+- `ghcr.io/hazrat16/appointment-frontend:latest` / `:<short-sha>`
+
+[`.github/workflows/codeql.yml`](.github/workflows/codeql.yml) runs static analysis (CodeQL) on push/PR to `main` and weekly. [`.github/dependabot.yml`](.github/dependabot.yml) opens weekly dependency-update PRs for both packages and GitHub Actions.
+
+## Infrastructure as code
+
+[`infra/terraform/`](./infra/terraform/) manages the MongoDB Atlas project/cluster/user via Terraform, replacing the manual dashboard setup in [Phase 1](./deployment/PHASE1.md) §1. See [`infra/terraform/README.md`](./infra/terraform/README.md).
 
 ## Roadmap
 
 - **Phase 0** — Local + Docker + seed + env docs (done).
 - **Phase 1** — Public demo on Atlas + Render + Vercel: [**deployment/PHASE1.md**](./deployment/PHASE1.md).
 - **Phase 2** — Booking rules, overlap prevention, cancellation policy, indexes: [**deployment/PHASE2.md**](./deployment/PHASE2.md).
+- **AWS** — ECS Fargate + ALB, App Runner, and single-EC2 alternatives: [**deployment/AWS.md**](./deployment/AWS.md).
 - Later — Verification hardening, email reminders, richer CI tests, etc.

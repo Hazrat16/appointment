@@ -17,37 +17,45 @@ import {
   formatTime,
   getStatusColor,
 } from "@/lib/utils";
-import { Appointment } from "@/types";
-import { ArrowLeft, Calendar, Clock, LogOut, Plus, User } from "lucide-react";
+import { ArrowLeft, Calendar, Clock, LogOut, Plus, User, X } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import toast from "react-hot-toast";
 
 export default function AppointmentsPage() {
   const { user, logout } = useAuth();
   const router = useRouter();
-  const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     if (user?.role !== "patient") {
       router.push("/auth/login");
-      return;
     }
-
-    fetchAppointments();
   }, [user, router]);
 
-  const fetchAppointments = async () => {
-    try {
-      setLoading(true);
-      const response = await appointmentsAPI.getAppointments();
-      if (response.success) {
-        setAppointments(response.appointments || []);
-      }
-    } catch (error) {
-      console.error("Error fetching appointments:", error);
-    } finally {
-      setLoading(false);
+  const { data, isLoading: loading } = useQuery({
+    queryKey: ["appointments"],
+    queryFn: () => appointmentsAPI.getAppointments(),
+    enabled: user?.role === "patient",
+  });
+
+  const appointments = data?.appointments ?? [];
+
+  const cancelMutation = useMutation({
+    mutationFn: (id: string) => appointmentsAPI.cancelAppointment(id),
+    onSuccess: () => {
+      toast.success("Appointment cancelled");
+      queryClient.invalidateQueries({ queryKey: ["appointments"] });
+    },
+    onError: () => {
+      toast.error("Failed to cancel appointment");
+    },
+  });
+
+  const handleCancel = (id: string) => {
+    if (window.confirm("Cancel this appointment?")) {
+      cancelMutation.mutate(id);
     }
   };
 
@@ -170,6 +178,18 @@ export default function AppointmentsPage() {
                           </p>
                         </div>
                       )}
+                      {appointment.status !== "cancelled" && (
+                        <Button
+                          variant="outline"
+                          className="w-full"
+                          onClick={() => handleCancel(appointment.id)}
+                          loading={cancelMutation.isPending && cancelMutation.variables === appointment.id}
+                          disabled={cancelMutation.isPending}
+                        >
+                          <X className="w-4 h-4 mr-2" />
+                          Cancel Appointment
+                        </Button>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -183,7 +203,7 @@ export default function AppointmentsPage() {
                   No upcoming appointments
                 </h3>
                 <p className="text-gray-600 mb-4">
-                  You don't have any scheduled appointments.
+                  You don&apos;t have any scheduled appointments.
                 </p>
                 <Button onClick={() => router.push("/patient/doctors")}>
                   <Plus className="w-4 h-4 mr-2" />

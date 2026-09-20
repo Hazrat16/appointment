@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/Card";
 import Input from "@/components/ui/Input";
 import Select from "@/components/ui/Select";
-import { useAuth } from "@/contexts/AuthContext";
+import { authAPI } from "@/lib/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Eye, EyeOff, User, UserPlus } from "lucide-react";
 import Link from "next/link";
@@ -19,6 +19,7 @@ import { RegisterRequest } from "@/types";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
+import toast from "react-hot-toast";
 import { z } from "zod";
 
 const registerSchema = z
@@ -71,7 +72,7 @@ type RegisterFormData = z.infer<typeof registerSchema>;
 export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const { register: registerUser, loading } = useAuth();
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
 
   const {
@@ -90,24 +91,36 @@ export default function RegisterPage() {
   const selectedRole = watch("role");
 
   const onSubmit = async (data: RegisterFormData) => {
+    const { confirmPassword, languages, ...rest } = data;
+
+    const registerPayload: RegisterRequest = {
+      ...rest,
+      ...(languages?.trim()
+        ? {
+            languages: languages
+              .split(",")
+              .map((lang) => lang.trim())
+              .filter(Boolean),
+          }
+        : {}),
+    };
+
     try {
-      const { confirmPassword, languages, ...rest } = data;
+      setLoading(true);
+      const response = await authAPI.register(registerPayload);
 
-      const registerPayload: RegisterRequest = {
-        ...rest,
-        ...(languages?.trim()
-          ? {
-              languages: languages
-                .split(",")
-                .map((lang) => lang.trim())
-                .filter(Boolean),
-            }
-          : {}),
-      };
-
-      await registerUser(registerPayload);
-    } catch (error) {
-      // Error is handled by the AuthContext
+      if (response.success) {
+        toast.success("Account created! Sign in to continue.");
+        router.push("/auth/login");
+      } else {
+        toast.error(response.message || "Registration failed");
+      }
+    } catch (error: any) {
+      const message =
+        error.response?.data?.message || error.message || "Registration failed";
+      toast.error(message);
+    } finally {
+      setLoading(false);
     }
   };
 
