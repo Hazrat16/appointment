@@ -1,4 +1,5 @@
 import type { NextFunction, Request, Response } from 'express';
+import logger from '../utils/logger';
 
 interface HttpError {
   message: string;
@@ -15,7 +16,7 @@ function isMongooseValidationError(err: unknown): err is { errors: Record<string
 
 export const errorHandler = (
   err: unknown,
-  _req: Request,
+  req: Request,
   res: Response,
   _next: NextFunction
 ): void => {
@@ -23,7 +24,8 @@ export const errorHandler = (
     message: err instanceof Error ? err.message : 'Server Error',
   };
 
-  console.error(err);
+  // Sentry hook point: `if (process.env.SENTRY_DSN) Sentry.captureException(err);`
+  (req.log ?? logger).error({ err }, 'Unhandled error in request');
 
   if (typeof err === 'object' && err !== null && (err as { name?: string }).name === 'CastError') {
     error = { message: 'Resource not found', statusCode: 404 };

@@ -4,21 +4,37 @@ import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
+import pinoHttp from 'pino-http';
+import swaggerUi from 'swagger-ui-express';
 
 import authRoutes from './routes/auth';
 import doctorRoutes from './routes/doctors';
 import appointmentRoutes from './routes/appointments';
 import errorHandler from './middleware/errorHandler';
+import logger from './utils/logger';
+import { openapiSpec } from './docs/openapi';
 
 dotenv.config();
 
+// Imported after dotenv.config() so the schema validates a fully-loaded process.env.
+import { env } from './config/env';
+
 const app = express();
 
-if (process.env.TRUST_PROXY === 'true' || process.env.TRUST_PROXY === '1') {
+if (env.TRUST_PROXY === 'true' || env.TRUST_PROXY === '1') {
   app.set('trust proxy', 1);
 }
 
 app.use(helmet());
+
+app.use(
+  pinoHttp({
+    logger,
+    autoLogging: {
+      ignore: (req) => req.url === '/health',
+    },
+  })
+);
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -36,10 +52,10 @@ const defaultOrigins = [
   'http://localhost:3002',
   'http://localhost:3003',
 ];
-const corsOrigins = process.env.FRONTEND_URL
-  ? process.env.FRONTEND_URL.split(',')
-      .map((s) => s.trim())
-      .filter(Boolean)
+const corsOrigins = env.FRONTEND_URL
+  ? env.FRONTEND_URL.split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)
   : defaultOrigins;
 
 app.use(
@@ -60,6 +76,8 @@ app.get('/health', (_req: Request, res: Response) => {
   });
 });
 
+app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(openapiSpec));
+
 app.use('/api/auth', authRoutes);
 app.use('/api/doctors', doctorRoutes);
 app.use('/api/appointments', appointmentRoutes);
@@ -74,16 +92,11 @@ app.use('*', (_req: Request, res: Response) => {
 app.use(errorHandler);
 
 const connectDB = async (): Promise<void> => {
-  const uri = process.env.MONGODB_URI;
-  if (!uri) {
-    console.error('MONGODB_URI is not set');
-    process.exit(1);
-  }
   try {
-    const conn = await mongoose.connect(uri);
-    console.log(`MongoDB Connected: ${conn.connection.host}`);
+    const conn = await mongoose.connect(env.MONGODB_URI);
+    logger.info(`MongoDB Connected: ${conn.connection.host}`);
   } catch (error) {
-    console.error('Database connection error:', error);
+    logger.error({ err: error }, 'Database connection error');
     process.exit(1);
   }
 };
@@ -91,20 +104,17 @@ const connectDB = async (): Promise<void> => {
 void connectDB();
 
 process.on('unhandledRejection', (err: Error) => {
-  console.log(`Error: ${err.message}`);
+  logger.fatal({ err }, 'Unhandled rejection');
   process.exit(1);
 });
 
 process.on('uncaughtException', (err: Error) => {
-  console.log(`Error: ${err.message}`);
+  logger.fatal({ err }, 'Uncaught exception');
   process.exit(1);
 });
 
-const PORT = Number(process.env.PORT) || 5000;
-const HOST = process.env.LISTEN_HOST || '0.0.0.0';
-
-app.listen(PORT, HOST, () => {
-  console.log(`Server running in ${process.env.NODE_ENV} mode on http://${HOST}:${PORT}`);
+app.listen(env.PORT, env.LISTEN_HOST, () => {
+  logger.info(`Server running in ${env.NODE_ENV} mode on http://${env.LISTEN_HOST}:${env.PORT}`);
 });
 
 export default app;

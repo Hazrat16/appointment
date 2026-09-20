@@ -102,7 +102,7 @@ export default function DoctorDashboard() {
             Welcome back, Dr. {user?.lastName}
           </h2>
           <p className="text-gray-600 mt-2">
-            Here's what's happening with your practice today.
+            Here&apos;s what&apos;s happening with your practice today.
           </p>
         </div>
 
@@ -116,7 +116,7 @@ export default function DoctorDashboard() {
                 </div>
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-600">
-                    Today's Appointments
+                    Today&apos;s Appointments
                   </p>
                   <p className="text-2xl font-bold text-gray-900">
                     {dashboardData?.todayAppointments?.length || 0}
@@ -187,7 +187,7 @@ export default function DoctorDashboard() {
             <CardHeader>
               <CardTitle className="flex items-center">
                 <Calendar className="w-5 h-5 mr-2" />
-                Today's Appointments
+                Today&apos;s Appointments
               </CardTitle>
               <CardDescription>
                 Your appointments for{" "}

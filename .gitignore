@@ -80,7 +80,8 @@ dist
 
 # Gatsby files
 .cache/
-public
+# `public` intentionally NOT ignored here — Next.js's public/ directory must be
+# tracked (see the second Gatsby section below, where it's correctly commented out).
 
 # Storybook build outputs
 .out
@@ -215,3 +216,9 @@ mongodb-credentials.txt
 # Keep deployment templates but ignore actual env files
 !backend/env.production.example
 !frontend/env.production.example
+
+# Terraform
+infra/terraform/.terraform/
+infra/terraform/*.tfstate
+infra/terraform/*.tfstate.*
+infra/terraform/*.tfvars
