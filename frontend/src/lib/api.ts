@@ -9,7 +9,10 @@ import {
 } from "@/types";
 import axios, { AxiosResponse } from "axios";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+// Falls back to a same-origin relative path so a single built image works
+// correctly behind any reverse proxy that path-routes /api to the backend
+// (Nginx, an ALB path rule, etc.) without needing a per-deployment rebuild.
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "/api";
 
 // Create axios instance
 const api = axios.create({

@@ -1,0 +1,40 @@
+---
+- name: Health check — app + service status
+  hosts: web
+  become: false
+  gather_facts: false
+  tasks:
+    - name: Curl /health from web1 itself
+      ansible.builtin.uri:
+        url: "https://127.0.0.1/health"
+        validate_certs: false
+        status_code: 200
+      register: health
+
+    - name: Show health response
+      ansible.builtin.debug:
+        var: health.json
+
+    - name: Docker containers status
+      ansible.builtin.command: docker compose -f /opt/appointment/docker-compose.yml ps
+      changed_when: false
+      register: compose_ps
+      become: true
+
+    - name: Show docker containers status
+      ansible.builtin.debug:
+        var: compose_ps.stdout_lines
+
+- name: Database service status
+  hosts: db
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Check mongod service status
+      ansible.builtin.systemd:
+        name: mongod
+      register: mongod_status
+
+    - name: Show mongod service status
+      ansible.builtin.debug:
+        var: mongod_status.status.ActiveState

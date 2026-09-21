@@ -1,0 +1,24 @@
+# Used by ansible/roles/app_deploy on web1 — pulls the images the CI
+# docker-publish job already built and pushed to GHCR, rather than building
+# from source on the box. No `mongo:` service: MongoDB is self-hosted on
+# db1 (see ansible/roles/mongodb), configured via MONGODB_URI in .env.
+#
+# Ports are bound to 127.0.0.1 only — Nginx (installed by
+# ansible/roles/app_deploy) is the only public listener, terminating TLS and
+# reverse-proxying to these containers.
+
+services:
+  api:
+    image: ghcr.io/hazrat16/appointment-backend:latest
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "127.0.0.1:5000:5000"
+
+  web:
+    image: ghcr.io/hazrat16/appointment-frontend:latest
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      - api

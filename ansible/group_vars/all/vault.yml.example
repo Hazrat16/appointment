@@ -1,0 +1,14 @@
+---
+# Copy to vault.yml and encrypt it — never commit the decrypted version:
+#   cp group_vars/all/vault.yml.example group_vars/all/vault.yml
+#   ansible-vault encrypt group_vars/all/vault.yml
+#
+# Edit later with: ansible-vault edit group_vars/all/vault.yml
+
+vault_jwt_secret: "REPLACE_WITH_openssl_rand_hex_64"
+vault_mongo_root_password: "REPLACE_WITH_A_STRONG_PASSWORD"
+vault_mongo_app_password: "REPLACE_WITH_A_DIFFERENT_STRONG_PASSWORD"
+
+# Only needed if group_vars/all/main.yml's ghcr_login_required is true.
+vault_ghcr_username: "REPLACE_WITH_YOUR_GITHUB_USERNAME"
+vault_ghcr_token: "REPLACE_WITH_A_GITHUB_PAT_WITH_read:packages_SCOPE"

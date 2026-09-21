@@ -1,0 +1,6 @@
+aws_region          = "us-east-1"
+project_prefix      = "appointment"
+instance_type       = "t3.small"
+ssh_public_key_path = "~/.ssh/appointment-ec2.pub"
+allowed_ssh_cidr    = "YOUR.PUBLIC.IP/32"
+allowed_http_cidr   = "0.0.0.0/0"

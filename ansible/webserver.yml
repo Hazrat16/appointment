@@ -1,0 +1,7 @@
+---
+- name: Docker + Nginx + the app itself, on web1
+  hosts: web
+  become: true
+  roles:
+    - docker
+    - app_deploy

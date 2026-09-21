@@ -1,0 +1,93 @@
+---
+- name: Create app directory
+  ansible.builtin.file:
+    path: "{{ app_dir }}"
+    state: directory
+    mode: "0755"
+
+- name: Copy production docker-compose file
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../deployment/docker-compose.prod.yml"
+    dest: "{{ app_dir }}/docker-compose.yml"
+    mode: "0644"
+
+- name: Template .env
+  ansible.builtin.template:
+    src: app.env.j2
+    dest: "{{ app_dir }}/.env"
+    mode: "0600"
+
+- name: Log in to GHCR (only if the images are private)
+  community.docker.docker_login:
+    registry_url: ghcr.io
+    username: "{{ vault_ghcr_username }}"
+    password: "{{ vault_ghcr_token }}"
+  when: ghcr_login_required | bool
+
+- name: Pull latest images and (re)deploy the stack
+  community.docker.docker_compose_v2:
+    project_src: "{{ app_dir }}"
+    pull: always
+    state: present
+
+# --- Nginx reverse proxy + self-signed TLS ---
+
+- name: Install nginx
+  ansible.builtin.apt:
+    name: nginx
+    state: present
+    update_cache: true
+
+- name: Create nginx TLS directory
+  ansible.builtin.file:
+    path: /etc/nginx/ssl
+    state: directory
+    mode: "0700"
+
+- name: Generate self-signed TLS certificate (idempotent — skipped if it already exists)
+  ansible.builtin.command:
+    cmd: >
+      openssl req -x509 -nodes -days 365 -newkey rsa:2048
+      -keyout /etc/nginx/ssl/selfsigned.key
+      -out /etc/nginx/ssl/selfsigned.crt
+      -subj "/CN={{ web_public_ip }}"
+    creates: /etc/nginx/ssl/selfsigned.crt
+
+- name: Template the appointment nginx vhost
+  ansible.builtin.template:
+    src: nginx-app.conf.j2
+    dest: /etc/nginx/sites-available/appointment.conf
+    mode: "0644"
+  notify: Reload nginx
+
+- name: Enable the appointment vhost
+  ansible.builtin.file:
+    src: /etc/nginx/sites-available/appointment.conf
+    dest: /etc/nginx/sites-enabled/appointment.conf
+    state: link
+  notify: Reload nginx
+
+- name: Disable the default nginx site
+  ansible.builtin.file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+  notify: Reload nginx
+
+- name: Ensure nginx is started and enabled
+  ansible.builtin.systemd:
+    name: nginx
+    state: started
+    enabled: true
+
+- name: Allow HTTP/HTTPS through ufw
+  community.general.ufw:
+    rule: allow
+    port: "{{ item }}"
+    proto: tcp
+  loop: ["80", "443"]
+
+- name: Enable ufw
+  community.general.ufw:
+    state: enabled
+    policy: deny
+    direction: incoming

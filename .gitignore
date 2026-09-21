@@ -218,7 +218,13 @@ mongodb-credentials.txt
 !frontend/env.production.example
 
 # Terraform
-infra/terraform/.terraform/
-infra/terraform/*.tfstate
-infra/terraform/*.tfstate.*
-infra/terraform/*.tfvars
+infra/terraform/**/.terraform/
+infra/terraform/**/*.tfstate
+infra/terraform/**/*.tfstate.*
+infra/terraform/**/terraform.tfvars
+
+# Ansible — generated inventory (from terraform apply), vault password, decrypted secrets
+ansible/inventory.ini
+ansible/.vault_pass
+ansible/group_vars/all/vault.yml
+!ansible/group_vars/all/vault.yml.example

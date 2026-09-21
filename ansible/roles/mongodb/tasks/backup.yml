@@ -1,0 +1,13 @@
+---
+- name: Run mongodb-backup.sh on demand
+  ansible.builtin.command: /usr/local/bin/mongodb-backup.sh
+  changed_when: true
+
+- name: List recent backups
+  ansible.builtin.command: "ls -lh {{ mongodb_backup_dir }}"
+  changed_when: false
+  register: mongodb_backup_listing
+
+- name: Show recent backups
+  ansible.builtin.debug:
+    var: mongodb_backup_listing.stdout_lines

@@ -1,0 +1,25 @@
+# Normally generated automatically by `terraform apply` in
+# infra/terraform/aws-classroom/ → ansible/inventory.ini. Only copy/edit this
+# file by hand if you provisioned the EC2 instances yourself instead.
+
+[web]
+web1 ansible_host=REPLACE_WITH_web1_PRIVATE_IP
+
+[db]
+db1 ansible_host=REPLACE_WITH_db1_PRIVATE_IP
+
+[web:vars]
+ansible_user=ubuntu
+ansible_ssh_private_key_file=/home/ubuntu/keys/appointment-ec2.pem
+ansible_ssh_common_args='-o StrictHostKeyChecking=no'
+
+[db:vars]
+ansible_user=ubuntu
+ansible_ssh_private_key_file=/home/ubuntu/keys/appointment-ec2.pem
+ansible_ssh_common_args='-o StrictHostKeyChecking=no'
+
+[all:vars]
+web_private_ip=REPLACE_WITH_web1_PRIVATE_IP
+web_public_ip=REPLACE_WITH_web1_PUBLIC_IP
+db_private_ip=REPLACE_WITH_db1_PRIVATE_IP
+control_public_ip=REPLACE_WITH_control_PUBLIC_IP

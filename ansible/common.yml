@@ -1,0 +1,6 @@
+---
+- name: Baseline hardening for all managed nodes
+  hosts: web:db
+  become: true
+  roles:
+    - basics
