@@ -43,7 +43,10 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       const path = error.config?.url ?? "";
-      const isAuthBootstrap = path.includes("/auth/me");
+      const isAuthBootstrap =
+        path.includes("/auth/me") ||
+        path.includes("/auth/login") ||
+        path.includes("/auth/register");
       if (typeof window !== "undefined" && !isAuthBootstrap) {
         localStorage.removeItem("token");
         localStorage.removeItem("user");
