@@ -7,22 +7,6 @@
 
 Full-stack doctor appointment booking: patients discover doctors and book slots, doctors manage availability and visits, admins oversee verification and users. Built as a portfolio-grade monorepo (Next.js + Express + MongoDB).
 
-## Live demo
-
-After you complete [Phase 1 hosting](./deployment/PHASE1.md), add your URLs here for recruiters and README visitors:
-
-| Resource | URL |
-|----------|-----|
-| **Web app** | *e.g. `https://….vercel.app`* |
-| **API health** | *e.g. `https://….onrender.com/health`* |
-
-## Roles
-
-| Role    | Capabilities (high level)                                      |
-|---------|-----------------------------------------------------------------|
-| Patient | Register, profile, browse doctors, book and manage appointments |
-| Doctor  | Profile, weekly availability, dashboard for appointments       |
-| Admin   | Dashboard, doctor list / verification workflows              |
 
 ## Architecture
 
