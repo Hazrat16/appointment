@@ -1,0 +1,50 @@
+---
+# Seeds demo data (1 admin, 2 patients, 14 doctors + availability, a few
+# sample appointments — see backend/scripts/seed.ts) into the self-hosted
+# MongoDB on db1. The seed script isn't shipped in the production Docker
+# image (dev-only tool), so this checks out the backend source into a
+# scratch dir on web1 and runs it in a throwaway Node container, reusing
+# web1's already-deployed .env for MONGODB_URI/credentials.
+#
+# Safe to re-run: seed.ts skips seeding if the admin account already exists.
+#
+# Usage:
+#   ansible-playbook playbooks/seed-database.yml
+#   ansible-playbook playbooks/seed-database.yml -e seed_reset=true   # wipe + reseed
+- name: Seed demo data into MongoDB
+  hosts: web
+  become: true
+  vars:
+    seed_reset: false
+    seed_checkout_dir: /opt/appointment-seed-src
+  tasks:
+    - name: Ensure git is installed
+      ansible.builtin.apt:
+        name: git
+        state: present
+
+    - name: Checkout backend source (the seed script isn't in the prod image)
+      ansible.builtin.git:
+        repo: https://github.com/Hazrat16/appointment.git
+        dest: "{{ seed_checkout_dir }}"
+        version: main
+        depth: 1
+        force: true
+
+    - name: Run the seed script inside a throwaway Node container
+      ansible.builtin.command:
+        cmd: >
+          docker run --rm
+          --network host
+          --env-file {{ app_dir }}/.env
+          -e NODE_ENV=production
+          -e SEED_ALLOW_PRODUCTION=true
+          -v {{ seed_checkout_dir }}/backend:/app
+          -w /app
+          node:20-alpine
+          sh -c "npm ci && npm run {{ 'seed:reset' if seed_reset | bool else 'seed' }}"
+      register: seed_run
+
+    - name: Show seed output
+      ansible.builtin.debug:
+        var: seed_run.stdout_lines

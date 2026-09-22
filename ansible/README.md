@@ -313,6 +313,8 @@ Optional:
 ```bash
 ansible-playbook playbooks/backup-now.yml
 ansible-playbook playbooks/rolling-deploy.yml
+ansible-playbook playbooks/seed-database.yml           # demo data: admin/patients/doctors
+ansible-playbook playbooks/seed-database.yml -e seed_reset=true   # wipe + reseed
 ```
 
 ---
