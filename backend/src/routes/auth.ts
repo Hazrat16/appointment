@@ -33,7 +33,7 @@ const registerValidation = [
   body('gender')
     .isIn(['male', 'female', 'other'])
     .withMessage('Gender must be male, female, or other'),
-  body('role').optional().isIn(['patient', 'doctor', 'admin']).withMessage('Invalid role'),
+  body('role').optional().isIn(['patient', 'doctor']).withMessage('Invalid role'),
   body('specialization')
     .if(body('role').equals('doctor'))
     .notEmpty()

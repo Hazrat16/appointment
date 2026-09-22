@@ -26,7 +26,7 @@ export const getAppointments = async (
       return;
     }
 
-    const { status, page = '1', limit = '10' } = req.query;
+    const { status, patientId, doctorId, page = '1', limit = '10' } = req.query;
 
     const filter: Record<string, unknown> = {};
     if (req.user.role === 'patient') {
@@ -41,6 +41,12 @@ export const getAppointments = async (
         return;
       }
       filter.doctor = doctor._id;
+    } else if (req.user.role === 'admin') {
+      // Only admin may narrow the otherwise-unfiltered "all appointments" view
+      // down to one patient/doctor — patients and doctors are already scoped
+      // to themselves above.
+      if (typeof patientId === 'string') filter.patient = patientId;
+      if (typeof doctorId === 'string') filter.doctor = doctorId;
     }
 
     if (typeof status === 'string') {
@@ -343,6 +349,14 @@ export const updateAppointment = async (
     let allowedFields: Record<string, unknown> = {};
 
     if (req.user.role === 'doctor' || req.user.role === 'admin') {
+      if (b.status === 'cancelled') {
+        res.status(400).json({
+          success: false,
+          message: 'Use DELETE /api/appointments/:id to cancel an appointment',
+        });
+        return;
+      }
+
       allowedFields = {
         status: b.status,
         prescription: b.prescription,
@@ -362,17 +376,12 @@ export const updateAppointment = async (
       if (allowedFields[key] === undefined) delete allowedFields[key];
     });
 
-    if (
-      allowedFields.status !== undefined &&
-      allowedFields.status !== appointment.status
-    ) {
-      if (['completed', 'cancelled', 'no-show'].includes(appointment.status)) {
-        res.status(400).json({
-          success: false,
-          message: 'Status cannot be changed from a terminal appointment state',
-        });
-        return;
-      }
+    if (['completed', 'cancelled', 'no-show'].includes(appointment.status)) {
+      res.status(400).json({
+        success: false,
+        message: 'This appointment is in a terminal state and cannot be edited',
+      });
+      return;
     }
 
     const updatedAppointment = await Appointment.findByIdAndUpdate(

@@ -10,7 +10,9 @@ import swaggerUi from 'swagger-ui-express';
 import authRoutes from './routes/auth';
 import doctorRoutes from './routes/doctors';
 import appointmentRoutes from './routes/appointments';
+import patientRoutes from './routes/patients';
 import errorHandler from './middleware/errorHandler';
+import { sanitizeInput } from './middleware/sanitizeInput';
 import logger from './utils/logger';
 import { openapiSpec } from './docs/openapi';
 
@@ -67,6 +69,7 @@ app.use(
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(sanitizeInput);
 
 app.get('/health', (_req: Request, res: Response) => {
   res.json({
@@ -81,6 +84,7 @@ app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(openapiSpec));
 app.use('/api/auth', authRoutes);
 app.use('/api/doctors', doctorRoutes);
 app.use('/api/appointments', appointmentRoutes);
+app.use('/api/patients', patientRoutes);
 
 app.use('*', (_req: Request, res: Response) => {
   res.status(404).json({

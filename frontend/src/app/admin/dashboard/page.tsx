@@ -12,10 +12,12 @@ import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import { useAuth } from "@/contexts/AuthContext";
 import { doctorsAPI } from "@/lib/api";
 import {
+  Calendar,
   CheckCircle,
   Clock,
   LogOut,
   Shield,
+  User,
   UserCheck,
   Users,
   UserX,
@@ -49,18 +51,13 @@ export default function AdminDashboard() {
   const router = useRouter();
   const [stats, setStats] = useState<DoctorStats | null>(null);
   const [recentUnverified, setRecentUnverified] = useState<UnverifiedDoctor[]>(
-    []
+    [],
   );
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (user?.role !== "admin") {
-      router.push("/auth/login");
-      return;
-    }
-
     fetchDashboardData();
-  }, [user, router]);
+  }, []);
 
   const fetchDashboardData = async () => {
     try {
@@ -122,9 +119,9 @@ export default function AdminDashboard() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
@@ -191,27 +188,84 @@ export default function AdminDashboard() {
         </div>
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
           <Card>
             <CardHeader>
               <CardTitle>Quick Actions</CardTitle>
               <CardDescription>
-                Manage doctors and system settings
+                Jump to any part of the platform
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <Link href="/admin/doctors">
-                <Button className="w-full justify-start" variant="outline">
-                  <Users className="h-4 w-4 mr-2" />
-                  Manage Doctors
-                </Button>
-              </Link>
-              <Link href="/admin/doctors?filter=unverified">
-                <Button className="w-full justify-start" variant="outline">
-                  <UserX className="h-4 w-4 mr-2" />
-                  Review Pending Verifications
-                </Button>
-              </Link>
+            <CardContent>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <Link
+                  href="/admin/appointments"
+                  className="group flex items-center gap-3 rounded-xl border border-input bg-white/70 p-4 shadow-soft transition-all duration-200 hover:-translate-y-0.5 hover:border-primary-200 hover:shadow-card"
+                >
+                  <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-primary-100">
+                    <Calendar className="h-5 w-5 text-primary-700" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-foreground">
+                      Manage Appointments
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      View &amp; update all bookings
+                    </p>
+                  </div>
+                </Link>
+
+                <Link
+                  href="/admin/patients"
+                  className="group flex items-center gap-3 rounded-xl border border-input bg-white/70 p-4 shadow-soft transition-all duration-200 hover:-translate-y-0.5 hover:border-violet-200 hover:shadow-card"
+                >
+                  <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-violet-100">
+                    <User className="h-5 w-5 text-violet-700" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-foreground">
+                      Manage Patients
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Browse patients &amp; history
+                    </p>
+                  </div>
+                </Link>
+
+                <Link
+                  href="/admin/doctors"
+                  className="group flex items-center gap-3 rounded-xl border border-input bg-white/70 p-4 shadow-soft transition-all duration-200 hover:-translate-y-0.5 hover:border-cyan-200 hover:shadow-card"
+                >
+                  <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-cyan-100">
+                    <Users className="h-5 w-5 text-cyan-700" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-foreground">
+                      Manage Doctors
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      All registered doctors
+                    </p>
+                  </div>
+                </Link>
+
+                <Link
+                  href="/admin/doctors?filter=unverified"
+                  className="group flex items-center gap-3 rounded-xl border border-input bg-white/70 p-4 shadow-soft transition-all duration-200 hover:-translate-y-0.5 hover:border-amber-200 hover:shadow-card"
+                >
+                  <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-amber-100">
+                    <UserX className="h-5 w-5 text-amber-700" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-foreground">
+                      Pending Verifications
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {stats?.unverified ?? 0} awaiting review
+                    </p>
+                  </div>
+                </Link>
+              </div>
             </CardContent>
           </Card>
 

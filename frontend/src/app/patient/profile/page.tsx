@@ -60,45 +60,40 @@ export default function PatientProfilePage() {
   });
 
   useEffect(() => {
-    if (user?.role !== "patient") {
-      router.push("/auth/login");
-      return;
-    }
+    if (!user) return;
 
-    if (user) {
-      // Format date of birth for date input (YYYY-MM-DD)
-      const formatDateOfBirth = (dateString: string) => {
-        if (!dateString) return "";
-        try {
-          const date = new Date(dateString);
-          return date.toISOString().split("T")[0];
-        } catch (error) {
-          return "";
-        }
-      };
+    // Format date of birth for date input (YYYY-MM-DD)
+    const formatDateOfBirth = (dateString: string) => {
+      if (!dateString) return "";
+      try {
+        const date = new Date(dateString);
+        return date.toISOString().split("T")[0];
+      } catch (error) {
+        return "";
+      }
+    };
 
-      reset({
-        firstName: user.firstName || "",
-        lastName: user.lastName || "",
-        email: user.email || "",
-        phone: user.phone || "",
-        dateOfBirth: formatDateOfBirth(user.dateOfBirth),
-        gender:
-          (user.gender as "male" | "female" | "other" | "prefer-not-to-say") ||
-          "",
-        city: user.address?.city || user.city || "",
-        state: user.address?.state || user.state || "",
-        zipCode: user.address?.zipCode || user.zipCode || "",
-        country: user.address?.country || user.country || "",
-        emergencyContactName: user.emergencyContactName || "",
-        emergencyContactPhone: user.emergencyContactPhone || "",
-        medicalHistory: user.medicalHistory || "",
-        allergies: user.allergies || "",
-        currentMedications: user.currentMedications || "",
-      });
-      setLoading(false);
-    }
-  }, [user, router, reset]);
+    reset({
+      firstName: user.firstName || "",
+      lastName: user.lastName || "",
+      email: user.email || "",
+      phone: user.phone || "",
+      dateOfBirth: formatDateOfBirth(user.dateOfBirth),
+      gender:
+        (user.gender as "male" | "female" | "other" | "prefer-not-to-say") ||
+        "",
+      city: user.address?.city || user.city || "",
+      state: user.address?.state || user.state || "",
+      zipCode: user.address?.zipCode || user.zipCode || "",
+      country: user.address?.country || user.country || "",
+      emergencyContactName: user.emergencyContactName || "",
+      emergencyContactPhone: user.emergencyContactPhone || "",
+      medicalHistory: user.medicalHistory || "",
+      allergies: user.allergies || "",
+      currentMedications: user.currentMedications || "",
+    });
+    setLoading(false);
+  }, [user, reset]);
 
   const onSubmit = async (data: ProfileFormData) => {
     try {

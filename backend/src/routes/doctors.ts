@@ -5,12 +5,13 @@ import {
   getDoctor,
   getDoctorAvailability,
   updateAvailability,
+  updateDoctorProfile,
   getDashboard,
   getAllDoctorsAdmin,
   verifyDoctor,
   getDoctorStats,
 } from '../controllers/doctorController';
-import { protect, authorize } from '../middleware/auth';
+import { protect, authorize, optionalAuth } from '../middleware/auth';
 
 const router = Router();
 
@@ -35,15 +36,26 @@ const verifyDoctorValidation = [
   body('isVerified').isBoolean().withMessage('isVerified must be a boolean value'),
 ];
 
+const updateDoctorProfileValidation = [
+  body('specialization').optional().notEmpty().withMessage('Specialization cannot be empty'),
+  body('bio').optional().isLength({ max: 1000 }).withMessage('Bio cannot exceed 1000 characters'),
+  body('consultationFee')
+    .optional()
+    .isFloat({ min: 0 })
+    .withMessage('Consultation fee must be a non-negative number'),
+  body('languages').optional().isArray().withMessage('Languages must be an array'),
+];
+
 router.get('/', getDoctors);
 router.get('/dashboard', protect, authorize('doctor'), getDashboard);
 router.put('/availability', protect, authorize('doctor'), availabilityValidation, updateAvailability);
+router.put('/profile', protect, authorize('doctor'), updateDoctorProfileValidation, updateDoctorProfile);
 
 router.get('/admin/all', protect, authorize('admin'), getAllDoctorsAdmin);
 router.put('/admin/:id/verify', protect, authorize('admin'), verifyDoctorValidation, verifyDoctor);
 router.get('/admin/stats', protect, authorize('admin'), getDoctorStats);
 
-router.get('/:id', getDoctor);
-router.get('/:id/availability', getDoctorAvailability);
+router.get('/:id', optionalAuth, getDoctor);
+router.get('/:id/availability', optionalAuth, getDoctorAvailability);
 
 export default router;

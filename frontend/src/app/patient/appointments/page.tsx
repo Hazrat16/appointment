@@ -18,7 +18,11 @@ import {
   formatTime,
   getStatusColor,
 } from "@/lib/utils";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQueryClient,
+} from "@tanstack/react-query";
 import {
   ArrowLeft,
   Calendar,
@@ -29,7 +33,7 @@ import {
   X,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import toast from "react-hot-toast";
 
 export default function AppointmentsPage() {
@@ -40,19 +44,24 @@ export default function AppointmentsPage() {
     null,
   );
 
-  useEffect(() => {
-    if (user?.role !== "patient") {
-      router.push("/auth/login");
-    }
-  }, [user, router]);
-
-  const { data, isLoading: loading } = useQuery({
+  const {
+    data,
+    isLoading: loading,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
+  } = useInfiniteQuery({
     queryKey: ["appointments"],
-    queryFn: () => appointmentsAPI.getAppointments(),
-    enabled: user?.role === "patient",
+    initialPageParam: 1,
+    queryFn: ({ pageParam }) =>
+      appointmentsAPI.getAppointments({ page: pageParam, limit: 20 }),
+    getNextPageParam: (lastPage) =>
+      lastPage.pagination && lastPage.pagination.page < lastPage.pagination.pages
+        ? lastPage.pagination.page + 1
+        : undefined,
   });
 
-  const appointments = data?.appointments ?? [];
+  const appointments = data?.pages.flatMap((page) => page.appointments ?? []) ?? [];
 
   const cancelMutation = useMutation({
     mutationFn: (id: string) => appointmentsAPI.cancelAppointment(id),
@@ -311,6 +320,19 @@ export default function AppointmentsPage() {
             </Card>
           )}
         </div>
+
+        {hasNextPage && (
+          <div className="text-center mt-8">
+            <Button
+              variant="outline"
+              onClick={() => fetchNextPage()}
+              loading={isFetchingNextPage}
+              disabled={isFetchingNextPage}
+            >
+              Load More Appointments
+            </Button>
+          </div>
+        )}
       </div>
 
       <ConfirmDialog

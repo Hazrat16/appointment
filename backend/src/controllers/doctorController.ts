@@ -4,6 +4,8 @@ import { validationResult } from 'express-validator';
 import { Doctor } from '../models/Doctor';
 import { Availability } from '../models/Availability';
 import { Appointment } from '../models/Appointment';
+import { User } from '../models/User';
+import { escapeRegex } from '../utils/regex';
 import {
   normalizeAppointmentDay,
   ACTIVE_STATUSES,
@@ -18,6 +20,27 @@ function asPopulatedUser(user: unknown): PopulatedUserRef {
   return user as PopulatedUserRef;
 }
 
+/**
+ * `search` is meant to match a doctor's name too (the UI says so), but name
+ * lives on the User document, not the Doctor one — a plain Doctor.find()
+ * regex can't reach it. Resolve matching user ids first, then OR them in.
+ */
+async function buildDoctorSearchFilter(search: string): Promise<Record<string, unknown>> {
+  const regex = new RegExp(escapeRegex(search), 'i');
+  const matchingUsers = await User.find({
+    role: 'doctor',
+    $or: [{ firstName: regex }, { lastName: regex }, { email: regex }],
+  }).select('_id');
+
+  return {
+    $or: [
+      { specialization: regex },
+      { bio: regex },
+      { user: { $in: matchingUsers.map((u) => u._id) } },
+    ],
+  };
+}
+
 export const getDoctors = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { specialization, search, page = '1', limit = '10' } = req.query;
@@ -25,15 +48,13 @@ export const getDoctors = async (req: Request, res: Response, next: NextFunction
     const filter: Record<string, unknown> = { isVerified: true };
 
     if (typeof specialization === 'string') {
-      filter.specialization = new RegExp(specialization, 'i');
+      filter.specialization = new RegExp(escapeRegex(specialization), 'i');
     }
 
-    let searchQuery: Record<string, unknown> = {};
-    if (typeof search === 'string') {
-      searchQuery = {
-        $or: [{ specialization: new RegExp(search, 'i') }, { bio: new RegExp(search, 'i') }],
-      };
-    }
+    const searchQuery =
+      typeof search === 'string' && search.trim()
+        ? await buildDoctorSearchFilter(search.trim())
+        : {};
 
     const skip = (parseInt(String(page), 10) - 1) * parseInt(String(limit), 10);
 
@@ -89,6 +110,17 @@ export const getDoctor = async (req: Request, res: Response, next: NextFunction)
     }
 
     const u = asPopulatedUser(doctor.user);
+    const isOwnerOrAdmin =
+      req.user?.role === 'admin' || (req.user && String(req.user.id) === String(u._id));
+
+    if (!doctor.isVerified && !isOwnerOrAdmin) {
+      res.status(404).json({
+        success: false,
+        message: 'Doctor not found',
+      });
+      return;
+    }
+
     const transformedDoctor = {
       ...doctor.toObject(),
       id: String(doctor._id),
@@ -125,6 +157,17 @@ export const getDoctorAvailability = async (
 
     const doctor = await Doctor.findById(req.params.id);
     if (!doctor) {
+      res.status(404).json({
+        success: false,
+        message: 'Doctor not found',
+      });
+      return;
+    }
+
+    const isOwnerOrAdmin =
+      req.user?.role === 'admin' || (req.user && String(req.user.id) === String(doctor.user));
+
+    if (!doctor.isVerified && !isOwnerOrAdmin) {
       res.status(404).json({
         success: false,
         message: 'Doctor not found',
@@ -265,6 +308,70 @@ export const updateAvailability = async (
   }
 };
 
+export const updateDoctorProfile = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    if (!req.user) {
+      res.status(401).json({ success: false, message: 'Not authenticated' });
+      return;
+    }
+
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array(),
+      });
+      return;
+    }
+
+    const b = req.body as Record<string, unknown>;
+    const fieldsToUpdate: Record<string, unknown> = {
+      specialization: b.specialization,
+      bio: b.bio,
+      consultationFee: b.consultationFee,
+      languages: b.languages,
+    };
+
+    Object.keys(fieldsToUpdate).forEach((key) => {
+      if (fieldsToUpdate[key] === undefined) delete fieldsToUpdate[key];
+    });
+
+    const doctor = await Doctor.findOneAndUpdate({ user: req.user.id }, fieldsToUpdate, {
+      new: true,
+      runValidators: true,
+    }).populate('user', 'firstName lastName email phone');
+
+    if (!doctor) {
+      res.status(404).json({
+        success: false,
+        message: 'Doctor profile not found',
+      });
+      return;
+    }
+
+    const u = asPopulatedUser(doctor.user);
+    res.json({
+      success: true,
+      message: 'Profile updated successfully',
+      doctor: {
+        ...doctor.toObject(),
+        id: String(doctor._id),
+        user: {
+          ...u.toObject(),
+          id: String(u._id),
+        },
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const getDashboard = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     if (!req.user) {
@@ -387,15 +494,13 @@ export const getAllDoctorsAdmin = async (
     }
 
     if (typeof specialization === 'string') {
-      filter.specialization = new RegExp(specialization, 'i');
+      filter.specialization = new RegExp(escapeRegex(specialization), 'i');
     }
 
-    let searchQuery: Record<string, unknown> = {};
-    if (typeof search === 'string') {
-      searchQuery = {
-        $or: [{ specialization: new RegExp(search, 'i') }, { bio: new RegExp(search, 'i') }],
-      };
-    }
+    const searchQuery =
+      typeof search === 'string' && search.trim()
+        ? await buildDoctorSearchFilter(search.trim())
+        : {};
 
     const skip = (parseInt(String(page), 10) - 1) * parseInt(String(limit), 10);
 
@@ -437,6 +542,16 @@ export const getAllDoctorsAdmin = async (
 
 export const verifyDoctor = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array(),
+      });
+      return;
+    }
+
     const { isVerified } = req.body as { isVerified: boolean };
 
     const doctor = await Doctor.findById(req.params.id).populate('user', 'firstName lastName email');

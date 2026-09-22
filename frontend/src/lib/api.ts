@@ -5,6 +5,7 @@ import {
   LoginRequest,
   RegisterRequest,
   UpdateAppointmentRequest,
+  UpdateDoctorProfileRequest,
   UpdateProfileRequest,
 } from "@/types";
 import axios, { AxiosResponse } from "axios";
@@ -102,6 +103,11 @@ export const doctorsAPI = {
   updateAvailability: (data: AvailabilityRequest): Promise<ApiResponse> =>
     api.put("/doctors/availability", data).then((res) => res.data),
 
+  updateDoctorProfile: (
+    data: UpdateDoctorProfileRequest
+  ): Promise<ApiResponse> =>
+    api.put("/doctors/profile", data).then((res) => res.data),
+
   getDashboard: (): Promise<ApiResponse> =>
     api.get("/doctors/dashboard").then((res) => res.data),
 
@@ -128,6 +134,8 @@ export const doctorsAPI = {
 export const appointmentsAPI = {
   getAppointments: (params?: {
     status?: string;
+    patientId?: string;
+    doctorId?: string;
     page?: number;
     limit?: number;
   }): Promise<ApiResponse> =>
@@ -149,6 +157,19 @@ export const appointmentsAPI = {
     api
       .delete(`/appointments/${id}`, { data: { cancellationReason: reason } })
       .then((res) => res.data),
+};
+
+// Patients API (admin only)
+export const patientsAPI = {
+  getAllPatientsAdmin: (params?: {
+    search?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<ApiResponse> =>
+    api.get("/patients/admin/all", { params }).then((res) => res.data),
+
+  getPatientAdmin: (id: string): Promise<ApiResponse> =>
+    api.get(`/patients/admin/${id}`).then((res) => res.data),
 };
 
 export default api;

@@ -28,6 +28,8 @@ export interface User {
   lastLogin?: string;
   createdAt: string;
   updatedAt: string;
+  // Present on GET /auth/me when the user's role is "doctor".
+  doctorProfile?: Doctor;
 }
 
 export interface Doctor {
@@ -106,6 +108,8 @@ export interface ApiResponse<T = any> {
   token?: string;
   doctor?: Doctor;
   doctors?: Doctor[];
+  patient?: User;
+  patients?: User[];
   appointments?: Appointment[];
   availability?: TimeSlot[];
   dashboard?: any;
@@ -188,6 +192,13 @@ export interface UpdateAppointmentRequest {
   followUpDate?: string;
   notes?: string;
   symptoms?: string;
+}
+
+export interface UpdateDoctorProfileRequest {
+  specialization?: string;
+  bio?: string;
+  consultationFee?: number;
+  languages?: string[];
 }
 
 export interface AvailabilityRequest {

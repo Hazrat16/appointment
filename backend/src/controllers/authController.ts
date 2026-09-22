@@ -45,7 +45,7 @@ export const register = async (req: Request, res: Response, next: NextFunction):
       phone,
       dateOfBirth,
       gender,
-      role: (role as string) || 'patient',
+      role: role === 'doctor' ? 'doctor' : 'patient',
       address,
     });
 

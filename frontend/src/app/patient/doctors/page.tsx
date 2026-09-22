@@ -10,7 +10,7 @@ import { doctorsAPI } from "@/lib/api";
 import { debounce, formatCurrency, getInitials } from "@/lib/utils";
 import { ArrowLeft, Calendar, Clock, Filter, Search, Star } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 
 export default function DoctorsPage() {
@@ -18,12 +18,6 @@ export default function DoctorsPage() {
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
   const [specialization, setSpecialization] = useState("");
-
-  useEffect(() => {
-    if (user?.role !== "patient") {
-      router.push("/auth/login");
-    }
-  }, [user, router]);
 
   const {
     data,
