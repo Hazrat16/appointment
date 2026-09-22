@@ -5,6 +5,7 @@ import { Doctor } from '../models/Doctor';
 import { Availability } from '../models/Availability';
 import { Appointment } from '../models/Appointment';
 import { User } from '../models/User';
+import { escapeRegex } from '../utils/regex';
 import {
   normalizeAppointmentDay,
   ACTIVE_STATUSES,
@@ -25,7 +26,7 @@ function asPopulatedUser(user: unknown): PopulatedUserRef {
  * regex can't reach it. Resolve matching user ids first, then OR them in.
  */
 async function buildDoctorSearchFilter(search: string): Promise<Record<string, unknown>> {
-  const regex = new RegExp(search, 'i');
+  const regex = new RegExp(escapeRegex(search), 'i');
   const matchingUsers = await User.find({
     role: 'doctor',
     $or: [{ firstName: regex }, { lastName: regex }, { email: regex }],
@@ -47,7 +48,7 @@ export const getDoctors = async (req: Request, res: Response, next: NextFunction
     const filter: Record<string, unknown> = { isVerified: true };
 
     if (typeof specialization === 'string') {
-      filter.specialization = new RegExp(specialization, 'i');
+      filter.specialization = new RegExp(escapeRegex(specialization), 'i');
     }
 
     const searchQuery =
@@ -493,7 +494,7 @@ export const getAllDoctorsAdmin = async (
     }
 
     if (typeof specialization === 'string') {
-      filter.specialization = new RegExp(specialization, 'i');
+      filter.specialization = new RegExp(escapeRegex(specialization), 'i');
     }
 
     const searchQuery =

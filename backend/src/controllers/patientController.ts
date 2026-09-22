@@ -1,5 +1,6 @@
 import type { NextFunction, Request, Response } from 'express';
 import { User } from '../models/User';
+import { escapeRegex } from '../utils/regex';
 
 export const getAllPatientsAdmin = async (
   req: Request,
@@ -12,7 +13,7 @@ export const getAllPatientsAdmin = async (
     const filter: Record<string, unknown> = { role: 'patient' };
 
     if (typeof search === 'string' && search.trim()) {
-      const regex = new RegExp(search.trim(), 'i');
+      const regex = new RegExp(escapeRegex(search.trim()), 'i');
       filter.$or = [{ firstName: regex }, { lastName: regex }, { email: regex }];
     }
 
