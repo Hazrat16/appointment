@@ -11,7 +11,7 @@ import {
 import Input from "@/components/ui/Input";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import { appointmentsAPI, doctorsAPI } from "@/lib/api";
-import { formatCurrency, getInitials } from "@/lib/utils";
+import { formatCurrency, formatDate, formatTime, getInitials } from "@/lib/utils";
 import { CreateAppointmentRequest, Doctor } from "@/types";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -20,6 +20,8 @@ import {
   Calendar,
   CheckCircle,
   Clock,
+  DollarSign,
+  Languages as LanguagesIcon,
   Star,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -69,6 +71,8 @@ export default function DoctorBookingPage({
   });
 
   const watchedDate = watch("appointmentDate");
+  const watchedStartTime = watch("startTime");
+  const watchedEndTime = watch("endTime");
 
   useEffect(() => {
     if (params.id) {
@@ -182,17 +186,17 @@ export default function DoctorBookingPage({
 
   if (!doctor) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center px-4">
         <div className="text-center">
-          <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">
-            Doctor Not Found
+          <AlertCircle className="w-16 h-16 text-error-500 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-foreground mb-2">
+            Doctor not found
           </h2>
-          <p className="text-gray-600 mb-4">
+          <p className="text-muted-foreground mb-6">
             The doctor you&apos;re looking for doesn&apos;t exist.
           </p>
           <Button onClick={() => router.push("/patient/doctors")}>
-            Back to Doctors
+            Back to doctors
           </Button>
         </div>
       </div>
@@ -200,120 +204,129 @@ export default function DoctorBookingPage({
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <Button
-                variant="ghost"
-                onClick={() => router.push("/patient/doctors")}
-                className="mr-4"
-              >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Doctors
-              </Button>
-              <h1 className="text-2xl font-bold text-gray-900">
-                Book Appointment
-              </h1>
-            </div>
-          </div>
+      <header className="sticky top-0 z-40 border-b border-white/60 bg-white/80 shadow-soft backdrop-blur-xl">
+        <div className="mx-auto flex h-16 max-w-5xl items-center px-4 sm:px-6 lg:px-8">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => router.push("/patient/doctors")}
+            className="mr-4"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to Doctors
+          </Button>
+          <h1 className="text-lg font-semibold tracking-tight text-foreground">
+            Book Appointment
+          </h1>
         </div>
       </header>
 
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
           {/* Doctor Info */}
-          <div className="lg:col-span-1">
-            <Card className="sticky top-8">
+          <div className="lg:col-span-2">
+            <Card className="sticky top-24 animate-in">
               <CardHeader>
-                <CardTitle>Doctor Information</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-start space-x-4">
-                  <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center flex-shrink-0">
-                    <span className="text-xl font-semibold text-primary-600">
+                <div className="flex items-start gap-4">
+                  <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary-500 to-primary-700 shadow-md shadow-primary-900/15">
+                    <span className="text-xl font-bold text-white">
                       {getInitials(doctor.user.firstName, doctor.user.lastName)}
                     </span>
                   </div>
-
-                  <div className="flex-1 min-w-0">
-                    <h3 className="text-lg font-semibold text-gray-900">
+                  <div className="min-w-0">
+                    <h3 className="text-lg font-semibold text-foreground">
                       Dr. {doctor.user.firstName} {doctor.user.lastName}
                     </h3>
-                    <p className="text-sm text-primary-600 font-medium">
+                    <span className="badge badge-default mt-1.5 inline-flex">
                       {doctor.specialization}
-                    </p>
-
-                    <div className="flex items-center mt-2">
-                      <Star className="w-4 h-4 text-yellow-400 fill-current" />
-                      <span className="ml-1 text-sm text-gray-600">
-                        {doctor.rating.average.toFixed(1)} (
-                        {doctor.rating.count} reviews)
-                      </span>
-                    </div>
-
-                    <div className="flex items-center mt-1">
-                      <Clock className="w-4 h-4 text-gray-400" />
-                      <span className="ml-1 text-sm text-gray-600">
-                        {doctor.experience} years experience
-                      </span>
-                    </div>
-
-                    <div className="mt-3">
-                      <p className="text-lg font-bold text-gray-900">
-                        {formatCurrency(doctor.consultationFee)}
-                      </p>
-                      <p className="text-sm text-gray-500">Consultation fee</p>
-                    </div>
-
-                    {doctor.bio && (
-                      <p className="mt-3 text-sm text-gray-600">{doctor.bio}</p>
-                    )}
-
-                    {doctor.languages && doctor.languages.length > 0 && (
-                      <div className="mt-3">
-                        <p className="text-sm font-medium text-gray-700">
-                          Languages:
-                        </p>
-                        <p className="text-sm text-gray-600">
-                          {doctor.languages.join(", ")}
-                        </p>
-                      </div>
-                    )}
+                    </span>
                   </div>
                 </div>
+              </CardHeader>
+              <CardContent className="space-y-5">
+                <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-1.5">
+                    <Star className="w-4 h-4 text-amber-400 fill-current" />
+                    <span className="font-medium text-foreground">
+                      {doctor.rating.average.toFixed(1)}
+                    </span>
+                    <span>({doctor.rating.count} reviews)</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <Clock className="w-4 h-4" />
+                    {doctor.experience} yrs experience
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 rounded-xl border border-primary-100 bg-primary-50/70 p-4">
+                  <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-white shadow-soft">
+                    <DollarSign className="w-5 h-5 text-primary-600" />
+                  </div>
+                  <div>
+                    <p className="text-lg font-bold leading-none text-foreground">
+                      {formatCurrency(doctor.consultationFee)}
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Consultation fee
+                    </p>
+                  </div>
+                </div>
+
+                {doctor.bio && (
+                  <div>
+                    <p className="text-sm font-medium text-foreground mb-1.5">
+                      About
+                    </p>
+                    <p className="text-sm leading-relaxed text-muted-foreground">
+                      {doctor.bio}
+                    </p>
+                  </div>
+                )}
+
+                {doctor.languages && doctor.languages.length > 0 && (
+                  <div>
+                    <p className="mb-2 flex items-center gap-1.5 text-sm font-medium text-foreground">
+                      <LanguagesIcon className="w-4 h-4" />
+                      Languages
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {doctor.languages.map((lang) => (
+                        <span key={lang} className="badge badge-secondary">
+                          {lang}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
 
           {/* Booking Form */}
-          <div className="lg:col-span-2">
-            <Card>
+          <div className="lg:col-span-3">
+            <Card className="animate-in">
               <CardHeader>
                 <CardTitle>Book Your Appointment</CardTitle>
                 <CardDescription>
-                  Select a date and time for your appointment. Bookings must be at least 2
-                  hours before the slot. If you need to cancel, do so more than 24 hours before
-                  the visit (policy is enforced on the server).
+                  Select a date and time for your appointment. Bookings must
+                  be at least 2 hours before the slot. If you need to cancel,
+                  do so more than 24 hours before the visit (policy is
+                  enforced on the server).
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
                   {/* Date Selection */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Select Date
-                    </label>
-                    <Input
-                      {...register("appointmentDate")}
-                      type="date"
-                      min={getMinDate()}
-                      max={getMaxDate()}
-                      error={errors.appointmentDate?.message}
-                    />
-                  </div>
+                  <Input
+                    label="Select date"
+                    {...register("appointmentDate")}
+                    type="date"
+                    min={getMinDate()}
+                    max={getMaxDate()}
+                    error={errors.appointmentDate?.message}
+                  />
 
                   {/* Hidden endTime field */}
                   <input {...register("endTime")} type="hidden" />
@@ -321,104 +334,117 @@ export default function DoctorBookingPage({
                   {/* Time Slots */}
                   {watchedDate && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Available Time Slots
+                      <label className="label mb-2 block">
+                        Available time slots
                       </label>
                       {loadingAvailability ? (
-                        <div className="flex items-center justify-center py-8">
+                        <div className="flex items-center justify-center rounded-xl border border-dashed border-input py-8">
                           <LoadingSpinner size="sm" />
-                          <span className="ml-2 text-gray-600">
+                          <span className="ml-2 text-sm text-muted-foreground">
                             Loading availability...
                           </span>
                         </div>
                       ) : availability.length > 0 ? (
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                          {availability.map((slot, index) => (
-                            <button
-                              key={index}
-                              type="button"
-                              disabled={!slot.available}
-                              onClick={() =>
-                                handleTimeSlotSelect(
-                                  slot.startTime,
-                                  slot.endTime
-                                )
-                              }
-                              className={`p-3 text-sm border rounded-lg transition-colors ${
-                                slot.available
-                                  ? "border-gray-300 hover:border-primary-500 hover:bg-primary-50"
-                                  : "border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed"
-                              } ${
-                                watch("startTime") === slot.startTime
-                                  ? "border-primary-500 bg-primary-50 text-primary-700"
-                                  : ""
-                              }`}
-                            >
-                              <div className="flex items-center justify-center">
-                                <Clock className="w-4 h-4 mr-1" />
-                                {slot.startTime} - {slot.endTime}
-                              </div>
-                              {!slot.available && (
-                                <div className="text-xs mt-1 text-center">
-                                  Unavailable
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5">
+                          {availability.map((slot, index) => {
+                            const selected =
+                              watchedStartTime === slot.startTime;
+                            return (
+                              <button
+                                key={index}
+                                type="button"
+                                disabled={!slot.available}
+                                onClick={() =>
+                                  handleTimeSlotSelect(
+                                    slot.startTime,
+                                    slot.endTime
+                                  )
+                                }
+                                className={`rounded-xl border p-3 text-sm font-medium transition-all duration-150 ${
+                                  !slot.available
+                                    ? "cursor-not-allowed border-input/60 bg-muted/60 text-muted-foreground/70"
+                                    : selected
+                                    ? "border-primary-400 bg-gradient-to-b from-primary-500 to-primary-700 text-white shadow-md shadow-primary-900/15"
+                                    : "border-input bg-white/90 text-foreground shadow-soft hover:-translate-y-0.5 hover:border-primary-300 hover:bg-primary-50"
+                                }`}
+                              >
+                                <div className="flex items-center justify-center gap-1.5">
+                                  <Clock className="w-3.5 h-3.5" />
+                                  {slot.startTime} - {slot.endTime}
                                 </div>
-                              )}
-                            </button>
-                          ))}
+                                {!slot.available && (
+                                  <div className="mt-1 text-center text-xs">
+                                    Unavailable
+                                  </div>
+                                )}
+                              </button>
+                            );
+                          })}
                         </div>
                       ) : (
-                        <div className="text-center py-8 text-gray-500">
-                          <Calendar className="w-12 h-12 mx-auto mb-2 text-gray-400" />
-                          <p>No available slots for this date</p>
-                          <p className="text-sm">Please select another date</p>
+                        <div className="rounded-xl border border-dashed border-input py-8 text-center text-muted-foreground">
+                          <Calendar className="w-10 h-10 mx-auto mb-2 opacity-60" />
+                          <p className="text-sm font-medium">
+                            No available slots for this date
+                          </p>
+                          <p className="text-xs">Please select another date</p>
                         </div>
                       )}
                       {errors.startTime && (
-                        <p className="text-sm text-red-600 mt-1">
-                          {errors.startTime.message}
-                        </p>
+                        <p className="form-error">{errors.startTime.message}</p>
                       )}
                     </div>
                   )}
 
                   {/* Symptoms */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Symptoms <span className="text-red-500">*</span>
+                    <label className="label mb-2 block">
+                      Symptoms <span className="text-error-500">*</span>
                     </label>
                     <textarea
                       {...register("symptoms")}
                       rows={4}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      className="input h-auto resize-none py-2.5"
                       placeholder="Please describe your symptoms or reason for the appointment..."
                     />
                     {errors.symptoms && (
-                      <p className="text-sm text-red-600 mt-1">
-                        {errors.symptoms.message}
-                      </p>
+                      <p className="form-error">{errors.symptoms.message}</p>
                     )}
                   </div>
 
                   {/* Additional Notes */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Additional Notes (Optional)
+                    <label className="label mb-2 block">
+                      Additional notes (optional)
                     </label>
                     <textarea
                       {...register("notes")}
                       rows={3}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      className="input h-auto resize-none py-2.5"
                       placeholder="Any additional information you'd like to share..."
                     />
                     {errors.notes && (
-                      <p className="text-sm text-red-600 mt-1">
-                        {errors.notes.message}
-                      </p>
+                      <p className="form-error">{errors.notes.message}</p>
                     )}
                   </div>
 
+                  {/* Summary */}
+                  {watchedDate && watchedStartTime && (
+                    <div className="rounded-xl border border-primary-100 bg-primary-50/70 p-4 text-sm">
+                      <p className="font-medium text-foreground">
+                        You&apos;re booking with Dr. {doctor.user.lastName}
+                      </p>
+                      <p className="mt-1 text-muted-foreground">
+                        {formatDate(watchedDate, "EEEE, MMM d, yyyy")} &middot;{" "}
+                        {formatTime(watchedStartTime)}
+                        {watchedEndTime ? ` - ${formatTime(watchedEndTime)}` : ""}{" "}
+                        &middot; {formatCurrency(doctor.consultationFee)}
+                      </p>
+                    </div>
+                  )}
+
                   {/* Submit Button */}
-                  <div className="flex justify-end space-x-4">
+                  <div className="flex justify-end gap-3 pt-2">
                     <Button
                       type="button"
                       variant="outline"
@@ -429,9 +455,9 @@ export default function DoctorBookingPage({
                     <Button
                       type="submit"
                       loading={booking}
-                      disabled={booking || !watchedDate || !watch("startTime")}
+                      disabled={booking || !watchedDate || !watchedStartTime}
                     >
-                      <CheckCircle className="w-4 h-4 mr-2" />
+                      <CheckCircle className="w-4 h-4" />
                       Book Appointment
                     </Button>
                   </div>

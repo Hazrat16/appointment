@@ -50,7 +50,7 @@ export default function AdminDashboard() {
   const router = useRouter();
   const [stats, setStats] = useState<DoctorStats | null>(null);
   const [recentUnverified, setRecentUnverified] = useState<UnverifiedDoctor[]>(
-    []
+    [],
   );
   const [loading, setLoading] = useState(true);
 
@@ -118,9 +118,9 @@ export default function AdminDashboard() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
@@ -187,7 +187,7 @@ export default function AdminDashboard() {
         </div>
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
           <Card>
             <CardHeader>
               <CardTitle>Quick Actions</CardTitle>

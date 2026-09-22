@@ -63,12 +63,12 @@ export default function PatientDashboard() {
     (apt) =>
       new Date(apt.appointmentDate) >= new Date() &&
       apt.status !== "cancelled" &&
-      apt.status !== "completed"
+      apt.status !== "completed",
   );
 
   const pastAppointments = appointments.filter(
     (apt) =>
-      new Date(apt.appointmentDate) < new Date() || apt.status === "completed"
+      new Date(apt.appointmentDate) < new Date() || apt.status === "completed",
   );
 
   if (loading) {
@@ -119,8 +119,8 @@ export default function PatientDashboard() {
             Welcome back, {user?.firstName}
           </h2>
           <p className="mt-2 max-w-2xl text-base text-muted-foreground">
-            Manage visits, explore providers, and keep your care organized in one
-            place.
+            Manage visits, explore providers, and keep your care organized in
+            one place.
           </p>
         </div>
 
@@ -135,7 +135,9 @@ export default function PatientDashboard() {
                   <Search className="h-6 w-6 text-primary-700" />
                 </div>
                 <div className="ml-4">
-                  <h3 className="font-semibold text-foreground">Find doctors</h3>
+                  <h3 className="font-semibold text-foreground">
+                    Find doctors
+                  </h3>
                   <p className="text-sm text-muted-foreground">
                     Search and book appointments
                   </p>
@@ -154,8 +156,12 @@ export default function PatientDashboard() {
                   <Calendar className="h-6 w-6 text-emerald-700" />
                 </div>
                 <div className="ml-4">
-                  <h3 className="font-semibold text-foreground">My appointments</h3>
-                  <p className="text-sm text-muted-foreground">View and manage visits</p>
+                  <h3 className="font-semibold text-foreground">
+                    My appointments
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    View and manage visits
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -223,7 +229,7 @@ export default function PatientDashboard() {
                           <p className="text-sm text-gray-500">
                             {formatDate(
                               appointment.appointmentDate,
-                              "MMM dd, yyyy"
+                              "MMM dd, yyyy",
                             )}{" "}
                             at {formatTime(appointment.startTime)}
                           </p>
@@ -235,7 +241,7 @@ export default function PatientDashboard() {
                         </p>
                         <span
                           className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(
-                            appointment.status
+                            appointment.status,
                           )}`}
                         >
                           {appointment.status}
@@ -298,7 +304,7 @@ export default function PatientDashboard() {
                           <p className="text-sm text-gray-500">
                             {formatDate(
                               appointment.appointmentDate,
-                              "MMM dd, yyyy"
+                              "MMM dd, yyyy",
                             )}{" "}
                             at {formatTime(appointment.startTime)}
                           </p>
@@ -310,7 +316,7 @@ export default function PatientDashboard() {
                         </p>
                         <span
                           className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(
-                            appointment.status
+                            appointment.status,
                           )}`}
                         >
                           {appointment.status}
@@ -350,7 +356,7 @@ export default function PatientDashboard() {
                   <div className="text-2xl font-bold text-green-600">
                     {
                       pastAppointments.filter(
-                        (apt) => apt.status === "completed"
+                        (apt) => apt.status === "completed",
                       ).length
                     }
                   </div>

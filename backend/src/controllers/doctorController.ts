@@ -4,6 +4,7 @@ import { validationResult } from 'express-validator';
 import { Doctor } from '../models/Doctor';
 import { Availability } from '../models/Availability';
 import { Appointment } from '../models/Appointment';
+import { User } from '../models/User';
 import {
   normalizeAppointmentDay,
   ACTIVE_STATUSES,
@@ -18,6 +19,27 @@ function asPopulatedUser(user: unknown): PopulatedUserRef {
   return user as PopulatedUserRef;
 }
 
+/**
+ * `search` is meant to match a doctor's name too (the UI says so), but name
+ * lives on the User document, not the Doctor one — a plain Doctor.find()
+ * regex can't reach it. Resolve matching user ids first, then OR them in.
+ */
+async function buildDoctorSearchFilter(search: string): Promise<Record<string, unknown>> {
+  const regex = new RegExp(search, 'i');
+  const matchingUsers = await User.find({
+    role: 'doctor',
+    $or: [{ firstName: regex }, { lastName: regex }, { email: regex }],
+  }).select('_id');
+
+  return {
+    $or: [
+      { specialization: regex },
+      { bio: regex },
+      { user: { $in: matchingUsers.map((u) => u._id) } },
+    ],
+  };
+}
+
 export const getDoctors = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { specialization, search, page = '1', limit = '10' } = req.query;
@@ -28,12 +50,10 @@ export const getDoctors = async (req: Request, res: Response, next: NextFunction
       filter.specialization = new RegExp(specialization, 'i');
     }
 
-    let searchQuery: Record<string, unknown> = {};
-    if (typeof search === 'string') {
-      searchQuery = {
-        $or: [{ specialization: new RegExp(search, 'i') }, { bio: new RegExp(search, 'i') }],
-      };
-    }
+    const searchQuery =
+      typeof search === 'string' && search.trim()
+        ? await buildDoctorSearchFilter(search.trim())
+        : {};
 
     const skip = (parseInt(String(page), 10) - 1) * parseInt(String(limit), 10);
 
@@ -476,12 +496,10 @@ export const getAllDoctorsAdmin = async (
       filter.specialization = new RegExp(specialization, 'i');
     }
 
-    let searchQuery: Record<string, unknown> = {};
-    if (typeof search === 'string') {
-      searchQuery = {
-        $or: [{ specialization: new RegExp(search, 'i') }, { bio: new RegExp(search, 'i') }],
-      };
-    }
+    const searchQuery =
+      typeof search === 'string' && search.trim()
+        ? await buildDoctorSearchFilter(search.trim())
+        : {};
 
     const skip = (parseInt(String(page), 10) - 1) * parseInt(String(limit), 10);
 

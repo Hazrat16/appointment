@@ -19,6 +19,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 interface Doctor {
   id: string;
@@ -42,68 +43,68 @@ interface Doctor {
 export default function AdminDoctorsPage() {
   const { user, logout } = useAuth();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const searchParams = useSearchParams();
-  const [doctors, setDoctors] = useState<Doctor[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [verifying, setVerifying] = useState<string | null>(null);
   const [filter, setFilter] = useState<string>("all");
-  const [search, setSearch] = useState<string>("");
-  const [total, setTotal] = useState(0);
+  const [searchInput, setSearchInput] = useState<string>("");
+  const [activeSearch, setActiveSearch] = useState<string>("");
 
   const doctorId = searchParams.get("doctor");
 
+  // Normalizes the dashboard's `?filter=unverified` deep link onto the
+  // "true"/"false" values the tabs below actually use.
   useEffect(() => {
     const filterParam = searchParams.get("filter");
-    if (filterParam) {
+    if (filterParam === "unverified") {
+      setFilter("false");
+    } else if (filterParam === "verified") {
+      setFilter("true");
+    } else if (filterParam) {
       setFilter(filterParam);
     }
-
-    fetchDoctors();
   }, [searchParams]);
 
-  const fetchDoctors = async () => {
-    try {
-      setLoading(true);
+  const { data, isLoading: loading } = useQuery({
+    queryKey: ["admin-doctors", filter, activeSearch],
+    queryFn: () =>
+      doctorsAPI.getAllDoctorsAdmin({
+        ...(filter !== "all" ? { verificationStatus: filter === "true" } : {}),
+        ...(activeSearch ? { search: activeSearch } : {}),
+      }),
+  });
 
-      const params: any = {};
-      if (filter !== "all") {
-        params.verificationStatus = filter === "true";
-      }
-      if (search) {
-        params.search = search;
-      }
+  const doctors: Doctor[] = data?.doctors ?? [];
+  const total = data?.total ?? 0;
 
-      const response = await doctorsAPI.getAllDoctorsAdmin(params);
+  // Tab counts come from the stats endpoint, not the current (possibly
+  // filtered) `doctors` list — otherwise "Verified"/"Pending" would show 0
+  // whenever the opposite tab is active.
+  const { data: statsData } = useQuery({
+    queryKey: ["admin-doctor-stats"],
+    queryFn: () => doctorsAPI.getDoctorStats(),
+  });
+  const stats = (statsData as any)?.stats as
+    | { total: number; verified: number; unverified: number }
+    | undefined;
 
-      if (response.success) {
-        setDoctors(response.doctors || []);
-        setTotal(response.total || 0);
-      }
-    } catch (error) {
-      console.error("Error fetching doctors:", error);
-      toast.error("Failed to fetch doctors");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleVerifyDoctor = async (doctorId: string, isVerified: boolean) => {
-    try {
-      setVerifying(doctorId);
-      const response = await doctorsAPI.verifyDoctor(doctorId, isVerified);
-
-      if (response.success) {
-        toast.success(response.message ?? "Verification updated");
-        fetchDoctors(); // Refresh the list
-      }
-    } catch (error: any) {
-      console.error("Error verifying doctor:", error);
+  const verifyMutation = useMutation({
+    mutationFn: ({ id, isVerified }: { id: string; isVerified: boolean }) =>
+      doctorsAPI.verifyDoctor(id, isVerified),
+    onSuccess: (response) => {
+      toast.success(response.message ?? "Verification updated");
+      queryClient.invalidateQueries({ queryKey: ["admin-doctors"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-doctor-stats"] });
+    },
+    onError: (error: any) => {
       toast.error(
         error.response?.data?.message || "Failed to update verification status"
       );
-    } finally {
-      setVerifying(null);
-    }
+    },
+  });
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setActiveSearch(searchInput);
   };
 
   const handleLogout = () => {
@@ -115,14 +116,6 @@ export default function AdminDoctorsPage() {
     if (doctorId && doctor.id !== doctorId) return false;
     return true;
   });
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <LoadingSpinner size="lg" />
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -161,17 +154,17 @@ export default function AdminDoctorsPage() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         {/* Filters and Search */}
-        <div className="mb-6">
-          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-            <div className="flex flex-wrap gap-2">
+        <div className="mb-8">
+          <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 items-start sm:items-center justify-between">
+            <div className="flex flex-wrap gap-3">
               <Button
                 variant={filter === "all" ? "primary" : "outline"}
                 size="sm"
                 onClick={() => setFilter("all")}
               >
-                All ({total})
+                All ({stats?.total ?? total})
               </Button>
               <Button
                 variant={filter === "true" ? "primary" : "outline"}
@@ -180,7 +173,7 @@ export default function AdminDoctorsPage() {
                 className="text-green-600"
               >
                 <UserCheck className="h-4 w-4 mr-1" />
-                Verified ({doctors.filter((d) => d.isVerified).length})
+                Verified ({stats?.verified ?? 0})
               </Button>
               <Button
                 variant={filter === "false" ? "primary" : "outline"}
@@ -189,30 +182,35 @@ export default function AdminDoctorsPage() {
                 className="text-yellow-600"
               >
                 <Clock className="h-4 w-4 mr-1" />
-                Pending ({doctors.filter((d) => !d.isVerified).length})
+                Pending ({stats?.unverified ?? 0})
               </Button>
             </div>
 
-            <div className="flex gap-2">
+            <form onSubmit={handleSearchSubmit} className="flex gap-2">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <input
                   type="text"
                   placeholder="Search doctors..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
                   className="pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
-              <Button onClick={fetchDoctors} size="sm">
+              <Button type="submit" size="sm">
                 Search
               </Button>
-            </div>
+            </form>
           </div>
         </div>
 
         {/* Doctors List */}
-        <div className="space-y-4">
+        {loading ? (
+          <div className="flex items-center justify-center py-24">
+            <LoadingSpinner size="lg" />
+          </div>
+        ) : (
+        <div className="space-y-6">
           {filteredDoctors.length === 0 ? (
             <Card>
               <CardContent className="text-center py-12">
@@ -221,7 +219,7 @@ export default function AdminDoctorsPage() {
                   No doctors found
                 </h3>
                 <p className="text-gray-500">
-                  {search || filter !== "all"
+                  {activeSearch || filter !== "all"
                     ? "Try adjusting your search or filter criteria."
                     : "No doctors have been registered yet."}
                 </p>
@@ -233,29 +231,27 @@ export default function AdminDoctorsPage() {
                 key={doctor.id}
                 className="hover:shadow-md transition-shadow"
               >
-                <CardContent className="p-6">
-                  <div className="flex items-start justify-between">
+                <CardContent className="p-6 sm:p-8">
+                  <div className="flex items-start justify-between gap-6">
                     <div className="flex-1">
-                      <div className="flex items-center mb-2">
+                      <div className="flex items-center gap-3 mb-4">
                         <h3 className="text-lg font-semibold text-gray-900">
                           Dr. {doctor.user.firstName} {doctor.user.lastName}
                         </h3>
-                        <div className="ml-3 flex items-center">
-                          {doctor.isVerified ? (
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                              <CheckCircle className="h-3 w-3 mr-1" />
-                              Verified
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                              <Clock className="h-3 w-3 mr-1" />
-                              Pending
-                            </span>
-                          )}
-                        </div>
+                        {doctor.isVerified ? (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            <CheckCircle className="h-3 w-3 mr-1" />
+                            Verified
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                            <Clock className="h-3 w-3 mr-1" />
+                            Pending
+                          </span>
+                        )}
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm text-gray-600">
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-3 text-sm text-gray-600">
                         <div>
                           <span className="font-medium">Email:</span>{" "}
                           {doctor.user.email}
@@ -283,15 +279,15 @@ export default function AdminDoctorsPage() {
                       </div>
 
                       {doctor.bio && (
-                        <div className="mt-3">
+                        <div className="mt-5">
                           <span className="font-medium text-sm">Bio:</span>
-                          <p className="text-sm text-gray-600 mt-1">
+                          <p className="text-sm text-gray-600 mt-1.5">
                             {doctor.bio}
                           </p>
                         </div>
                       )}
 
-                      <div className="mt-3 text-xs text-gray-500">
+                      <div className="mt-5 text-xs text-gray-500">
                         Registered:{" "}
                         {new Date(doctor.createdAt).toLocaleDateString()}
                       </div>
@@ -302,11 +298,17 @@ export default function AdminDoctorsPage() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => handleVerifyDoctor(doctor.id, false)}
-                          disabled={verifying === doctor.id}
+                          onClick={() =>
+                            verifyMutation.mutate({
+                              id: doctor.id,
+                              isVerified: false,
+                            })
+                          }
+                          disabled={verifyMutation.isPending}
                           className="text-red-600 border-red-600 hover:bg-red-50"
                         >
-                          {verifying === doctor.id ? (
+                          {verifyMutation.isPending &&
+                          verifyMutation.variables?.id === doctor.id ? (
                             <LoadingSpinner size="sm" />
                           ) : (
                             <>
@@ -318,11 +320,17 @@ export default function AdminDoctorsPage() {
                       ) : (
                         <Button
                           size="sm"
-                          onClick={() => handleVerifyDoctor(doctor.id, true)}
-                          disabled={verifying === doctor.id}
+                          onClick={() =>
+                            verifyMutation.mutate({
+                              id: doctor.id,
+                              isVerified: true,
+                            })
+                          }
+                          disabled={verifyMutation.isPending}
                           className="bg-green-600 hover:bg-green-700"
                         >
-                          {verifying === doctor.id ? (
+                          {verifyMutation.isPending &&
+                          verifyMutation.variables?.id === doctor.id ? (
                             <LoadingSpinner size="sm" />
                           ) : (
                             <>
@@ -339,8 +347,7 @@ export default function AdminDoctorsPage() {
             ))
           )}
         </div>
-
-        {/* Pagination could be added here if needed */}
+        )}
       </main>
     </div>
   );
