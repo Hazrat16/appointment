@@ -1,0 +1,9 @@
+---
+- name: Run a MongoDB backup on demand
+  hosts: db
+  become: true
+  tasks:
+    - name: Include the mongodb role's backup tasks
+      ansible.builtin.include_role:
+        name: mongodb
+        tasks_from: backup

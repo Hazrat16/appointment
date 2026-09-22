@@ -1,6 +1,6 @@
 # Deployment notes
 
-This repository no longer includes **VPS-specific** scripts (SSH deploy, Nginx templates, server bootstrap). Local and containerized workflows live in the root [README.md](../README.md) (`docker compose`, seed data, env files).
+This repository no longer includes ad-hoc **VPS-specific** scripts (raw SSH deploy, hand-written Nginx configs, manual server bootstrap). Local and containerized workflows live in the root [README.md](../README.md) (`docker compose`, seed data, env files). If you want that VM-based deployment done properly instead, see [AWS Path D](../ansible/README.md) — Terraform-provisioned EC2 + Ansible-managed Nginx/TLS/MongoDB, not a hand-rolled script.
 
 ## Current targets
 
@@ -22,6 +22,8 @@ See **[PHASE2.md](./PHASE2.md)** — overlap rules, cancellation policy, partial
 ## AWS
 
 See **[AWS.md](./AWS.md)** — ECS Fargate + ALB + ECR (primary path), plus App Runner and single-EC2 alternatives, CI/CD via GitHub OIDC, and teardown/cost notes.
+
+For a Terraform + Ansible 3-node deployment (control node driving `web1`/`db1`, self-hosted MongoDB, real config management) see **[../ansible/README.md](../ansible/README.md)** instead — a separate, self-contained path.
 
 ## Optional: PM2 on any machine
 

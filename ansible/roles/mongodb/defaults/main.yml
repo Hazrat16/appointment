@@ -1,0 +1,4 @@
+---
+mongodb_version: "7.0"
+mongodb_backup_dir: /var/backups/mongodb
+mongodb_backup_retention_days: 7

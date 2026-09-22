@@ -1,0 +1,31 @@
+---
+# Capstone: the full platform, in the order that actually works —
+# db1 must be ready before web1 tries to connect to it.
+
+- name: Baseline hardening
+  import_playbook: common.yml
+
+- name: Database
+  import_playbook: database.yml
+
+- name: App + reverse proxy
+  import_playbook: webserver.yml
+
+- name: Verify the deployment
+  hosts: web
+  become: false
+  gather_facts: false
+  tasks:
+    - name: Wait for /health to return 200
+      ansible.builtin.uri:
+        url: "https://127.0.0.1/health"
+        validate_certs: false
+        status_code: 200
+      register: health
+      until: health.status == 200
+      retries: 10
+      delay: 3
+
+    - name: Show health response
+      ansible.builtin.debug:
+        var: health.json

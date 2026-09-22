@@ -11,8 +11,9 @@ This guide deploys the same Docker images the CI pipeline already builds ([`back
 | **A. ECS Fargate + ALB + ECR** | The strongest "AWS on my CV" signal — real container orchestration, load balancing, IAM | ~$30–45 | Highest — VPC, security groups, ALB, ECS |
 | **B. AWS App Runner** | A working AWS demo without managing a VPC/ALB | ~$5–15 (scales down when idle) | Low — a handful of CLI calls |
 | **C. Single EC2 + docker-compose** | Cheapest, and reuses your existing `docker-compose.yml` as-is | Free for 12 months (t3.micro free tier), then ~$7–8 | Low, but you own patching/uptime |
+| **D. Terraform + Ansible, 3-node (control/web1/db1)** | The strongest "config management / Linux ops on my CV" signal — real Ansible, self-hosted MongoDB, not just container CLI calls | ~2× t3.small (~$30) + a t3.small for control | Highest — same as A, plus you own the DB now |
 
-This guide covers **Path A** in full depth (it's the one worth understanding for interviews), then gives condensed steps for B and C. Pick one — don't run more than one at a time, or you'll pay for all of them.
+This guide covers **Path A** in full depth (it's the one worth understanding for interviews), then gives condensed steps for B and C. **Path D** is documented separately in [`../ansible/README.md`](../ansible/README.md) — it's a full Terraform + Ansible project of its own (provisioning, playbooks, vault-encrypted secrets), not something that fits as a subsection here. Pick one path — don't run more than one at a time, or you'll pay for all of them.
 
 All paths assume:
 - AWS CLI v2 installed and configured (`aws configure`), with a region exported: `export AWS_REGION=us-east-1`

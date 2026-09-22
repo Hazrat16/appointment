@@ -1,0 +1,15 @@
+---
+# Non-secret settings. Secrets live in group_vars/all/vault.yml (encrypted).
+
+ghcr_owner: hazrat16
+backend_image: "ghcr.io/{{ ghcr_owner }}/appointment-backend:latest"
+frontend_image: "ghcr.io/{{ ghcr_owner }}/appointment-frontend:latest"
+
+app_dir: /opt/appointment
+
+mongo_app_db: appointment
+mongo_app_user: appointment_app
+mongo_root_user: appointment_root
+
+# Set true if the GHCR packages are private (see ansible/README.md).
+ghcr_login_required: false

@@ -1,0 +1,119 @@
+---
+- name: Install prerequisites
+  ansible.builtin.apt:
+    name: [gnupg, curl, python3-pip]
+    state: present
+    update_cache: true
+
+- name: Install the Python MongoDB driver
+  # required on the target host for community.mongodb.mongodb_user, used below
+  ansible.builtin.pip:
+    name: pymongo
+    state: present
+
+- name: Add MongoDB GPG key
+  ansible.builtin.apt_key:
+    url: "https://pgp.mongodb.com/server-{{ mongodb_version }}.asc"
+    state: present
+
+- name: Add MongoDB apt repo
+  ansible.builtin.apt_repository:
+    repo: "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/{{ mongodb_version }} multiverse"
+    filename: mongodb-org
+    state: present
+
+- name: Install mongodb-org
+  ansible.builtin.apt:
+    name: mongodb-org
+    state: present
+    update_cache: true
+
+- name: Check bootstrap marker
+  ansible.builtin.stat:
+    path: /var/lib/mongodb/.ansible_bootstrapped
+  register: mongodb_bootstrap_marker
+
+- name: First-boot bootstrap (auth disabled, create users, then lock it down)
+  when: not mongodb_bootstrap_marker.stat.exists
+  block:
+    - name: Template mongod.conf (auth disabled for bootstrap)
+      ansible.builtin.template:
+        src: mongod.conf.j2
+        dest: /etc/mongod.conf
+        mode: "0644"
+      vars:
+        mongodb_auth_enabled: false
+
+    - name: Start mongod
+      ansible.builtin.systemd:
+        name: mongod
+        state: started
+        enabled: true
+
+    - name: Wait for mongod to accept connections
+      ansible.builtin.wait_for:
+        port: 27017
+        host: 127.0.0.1
+        timeout: 30
+
+    - name: Create root admin user
+      community.mongodb.mongodb_user:
+        login_host: 127.0.0.1
+        database: admin
+        name: "{{ mongo_root_user }}"
+        password: "{{ vault_mongo_root_password }}"
+        roles: root
+        state: present
+
+    - name: Create app-specific database user
+      community.mongodb.mongodb_user:
+        login_host: 127.0.0.1
+        database: "{{ mongo_app_db }}"
+        name: "{{ mongo_app_user }}"
+        password: "{{ vault_mongo_app_password }}"
+        roles:
+          - { db: "{{ mongo_app_db }}", role: readWrite }
+        state: present
+
+    - name: Template mongod.conf (auth enabled)
+      ansible.builtin.template:
+        src: mongod.conf.j2
+        dest: /etc/mongod.conf
+        mode: "0644"
+      vars:
+        mongodb_auth_enabled: true
+      notify: Restart mongod
+
+    - name: Flush handlers so mongod restarts with auth before we mark bootstrap done
+      ansible.builtin.meta: flush_handlers
+
+    - name: Write bootstrap marker
+      ansible.builtin.file:
+        path: /var/lib/mongodb/.ansible_bootstrapped
+        state: touch
+        mode: "0600"
+
+- name: Ensure mongod is started and enabled (steady state)
+  ansible.builtin.systemd:
+    name: mongod
+    state: started
+    enabled: true
+
+- name: Create backup directory
+  ansible.builtin.file:
+    path: "{{ mongodb_backup_dir }}"
+    state: directory
+    mode: "0700"
+
+- name: Template backup script
+  ansible.builtin.template:
+    src: backup.sh.j2
+    dest: /usr/local/bin/mongodb-backup.sh
+    mode: "0700"
+
+- name: Schedule nightly backup
+  ansible.builtin.cron:
+    name: "appointment mongodb backup"
+    minute: "30"
+    hour: "2"
+    job: "/usr/local/bin/mongodb-backup.sh"

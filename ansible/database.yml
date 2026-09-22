@@ -1,0 +1,6 @@
+---
+- name: MongoDB on db1
+  hosts: db
+  become: true
+  roles:
+    - mongodb

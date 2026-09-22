@@ -10,8 +10,6 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
-    "moduleResolution": "node10",
-    "ignoreDeprecations": "6.0",
     "noImplicitAny": true,
     "strictNullChecks": true,
     "typeRoots": ["./node_modules/@types"]

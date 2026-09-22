@@ -1,0 +1,18 @@
+---
+# Re-pulls the current `:latest` tags from GHCR and recreates any container
+# whose image changed. Run this after a new image lands in GHCR (i.e. after
+# a merge to main goes through the docker-publish CI job) to roll it out.
+- name: Rolling deploy — pull latest images and redeploy
+  hosts: web
+  become: true
+  tasks:
+    - name: Docker compose pull and up -d
+      community.docker.docker_compose_v2:
+        project_src: "{{ app_dir }}"
+        pull: always
+        state: present
+      register: deploy_result
+
+    - name: Show whether anything changed
+      ansible.builtin.debug:
+        var: deploy_result.changed
