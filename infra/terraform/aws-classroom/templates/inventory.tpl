@@ -22,3 +22,4 @@ web_private_ip=${web_private_ip}
 web_public_ip=${web_public_ip}
 db_private_ip=${db_private_ip}
 control_public_ip=${control_public_ip}
+vpc_cidr=${vpc_cidr}

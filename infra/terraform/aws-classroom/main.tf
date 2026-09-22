@@ -176,5 +176,6 @@ resource "local_file" "ansible_inventory" {
     web_private_ip    = aws_instance.web1.private_ip
     web_public_ip     = aws_instance.web1.public_ip
     db_private_ip     = aws_instance.db1.private_ip
+    vpc_cidr          = aws_vpc.this.cidr_block
   })
 }

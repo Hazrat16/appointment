@@ -5,6 +5,16 @@
     state: present
     update_cache: true
 
+- name: Allow MongoDB through ufw from within the VPC
+  # The security group already restricts inbound 27017 to web1/control, but
+  # the basics role's default-deny ufw policy blocks it too unless we open it
+  # here — without this, mongod is unreachable even though the SG allows it.
+  community.general.ufw:
+    rule: allow
+    port: "27017"
+    proto: tcp
+    src: "{{ vpc_cidr }}"
+
 - name: Install the Python MongoDB driver
   # required on the target host for community.mongodb.mongodb_user, used below
   ansible.builtin.pip:

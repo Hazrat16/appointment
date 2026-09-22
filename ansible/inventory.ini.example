@@ -23,3 +23,4 @@ web_private_ip=REPLACE_WITH_web1_PRIVATE_IP
 web_public_ip=REPLACE_WITH_web1_PUBLIC_IP
 db_private_ip=REPLACE_WITH_db1_PRIVATE_IP
 control_public_ip=REPLACE_WITH_control_PUBLIC_IP
+vpc_cidr=REPLACE_WITH_YOUR_VPC_CIDR
