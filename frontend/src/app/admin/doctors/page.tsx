@@ -170,7 +170,7 @@ export default function AdminDoctorsPage() {
                 variant={filter === "true" ? "primary" : "outline"}
                 size="sm"
                 onClick={() => setFilter("true")}
-                className="text-green-600"
+                className={filter === "true" ? "" : "text-green-600"}
               >
                 <UserCheck className="h-4 w-4 mr-1" />
                 Verified ({stats?.verified ?? 0})
@@ -179,7 +179,7 @@ export default function AdminDoctorsPage() {
                 variant={filter === "false" ? "primary" : "outline"}
                 size="sm"
                 onClick={() => setFilter("false")}
-                className="text-yellow-600"
+                className={filter === "false" ? "" : "text-yellow-600"}
               >
                 <Clock className="h-4 w-4 mr-1" />
                 Pending ({stats?.unverified ?? 0})
