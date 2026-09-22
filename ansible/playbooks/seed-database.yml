@@ -32,17 +32,20 @@
         force: true
 
     - name: Run the seed script inside a throwaway Node container
+      # --env-file already carries NODE_ENV=production (from app.env.j2) —
+      # that's needed for the seed script's production guard, but it also
+      # makes `npm ci` silently skip devDependencies (tsx included), so we
+      # override NODE_ENV just for the install step.
       ansible.builtin.command:
         cmd: >
           docker run --rm
           --network host
           --env-file {{ app_dir }}/.env
-          -e NODE_ENV=production
           -e SEED_ALLOW_PRODUCTION=true
           -v {{ seed_checkout_dir }}/backend:/app
           -w /app
           node:20-alpine
-          sh -c "npm ci && npm run {{ 'seed:reset' if seed_reset | bool else 'seed' }}"
+          sh -c "NODE_ENV=development npm ci && npm run {{ 'seed:reset' if seed_reset | bool else 'seed' }}"
       register: seed_run
 
     - name: Show seed output
