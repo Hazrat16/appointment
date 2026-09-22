@@ -2,6 +2,8 @@
 
 Provisions `control` + `web1` + `db1` Ubuntu 22.04 EC2 instances for the Ansible-driven deployment documented in [`ansible/README.md`](../../../ansible/README.md). This is a separate, self-contained path from the MongoDB Atlas config in [`infra/terraform/`](../) — this one self-hosts MongoDB on `db1` instead, and does not use Atlas at all.
 
+`db1` has no public IP and sits in its own private subnet; a NAT Gateway gives it outbound-only internet access (needed by the `mongodb` Ansible role for apt/pip and the MongoDB repo) without ever exposing it to inbound internet traffic. The NAT Gateway has an hourly cost (~$0.045/hr on top of data processing) that accrues for as long as `terraform apply` is up, even when idle — `terraform destroy` when you're done with a session.
+
 ## Setup
 
 ```bash
