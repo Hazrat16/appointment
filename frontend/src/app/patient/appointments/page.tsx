@@ -8,6 +8,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/Card";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import { useAuth } from "@/contexts/AuthContext";
 import { appointmentsAPI } from "@/lib/api";
@@ -19,7 +20,7 @@ import {
 } from "@/lib/utils";
 import { ArrowLeft, Calendar, Clock, LogOut, Plus, User, X } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 
@@ -27,6 +28,9 @@ export default function AppointmentsPage() {
   const { user, logout } = useAuth();
   const router = useRouter();
   const queryClient = useQueryClient();
+  const [appointmentToCancel, setAppointmentToCancel] = useState<
+    string | null
+  >(null);
 
   useEffect(() => {
     if (user?.role !== "patient") {
@@ -47,15 +51,21 @@ export default function AppointmentsPage() {
     onSuccess: () => {
       toast.success("Appointment cancelled");
       queryClient.invalidateQueries({ queryKey: ["appointments"] });
+      setAppointmentToCancel(null);
     },
     onError: () => {
       toast.error("Failed to cancel appointment");
+      setAppointmentToCancel(null);
     },
   });
 
   const handleCancel = (id: string) => {
-    if (window.confirm("Cancel this appointment?")) {
-      cancelMutation.mutate(id);
+    setAppointmentToCancel(id);
+  };
+
+  const confirmCancel = () => {
+    if (appointmentToCancel) {
+      cancelMutation.mutate(appointmentToCancel);
     }
   };
 
@@ -291,6 +301,18 @@ export default function AppointmentsPage() {
           )}
         </div>
       </div>
+
+      <ConfirmDialog
+        open={appointmentToCancel !== null}
+        title="Cancel this appointment?"
+        description="This action cannot be undone."
+        confirmLabel="Cancel Appointment"
+        cancelLabel="Keep Appointment"
+        variant="error"
+        loading={cancelMutation.isPending}
+        onConfirm={confirmCancel}
+        onCancel={() => setAppointmentToCancel(null)}
+      />
     </div>
   );
 }
