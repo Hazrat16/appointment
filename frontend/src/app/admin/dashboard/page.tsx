@@ -17,6 +17,7 @@ import {
   Clock,
   LogOut,
   Shield,
+  User,
   UserCheck,
   Users,
   UserX,
@@ -200,6 +201,12 @@ export default function AdminDashboard() {
                 <Button className="w-full justify-start" variant="outline">
                   <Calendar className="h-4 w-4 mr-2" />
                   Manage Appointments
+                </Button>
+              </Link>
+              <Link href="/admin/patients">
+                <Button className="w-full justify-start" variant="outline">
+                  <User className="h-4 w-4 mr-2" />
+                  Manage Patients
                 </Button>
               </Link>
               <Link href="/admin/doctors">

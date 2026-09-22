@@ -108,6 +108,8 @@ export interface ApiResponse<T = any> {
   token?: string;
   doctor?: Doctor;
   doctors?: Doctor[];
+  patient?: User;
+  patients?: User[];
   appointments?: Appointment[];
   availability?: TimeSlot[];
   dashboard?: any;

@@ -134,6 +134,8 @@ export const doctorsAPI = {
 export const appointmentsAPI = {
   getAppointments: (params?: {
     status?: string;
+    patientId?: string;
+    doctorId?: string;
     page?: number;
     limit?: number;
   }): Promise<ApiResponse> =>
@@ -155,6 +157,19 @@ export const appointmentsAPI = {
     api
       .delete(`/appointments/${id}`, { data: { cancellationReason: reason } })
       .then((res) => res.data),
+};
+
+// Patients API (admin only)
+export const patientsAPI = {
+  getAllPatientsAdmin: (params?: {
+    search?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<ApiResponse> =>
+    api.get("/patients/admin/all", { params }).then((res) => res.data),
+
+  getPatientAdmin: (id: string): Promise<ApiResponse> =>
+    api.get(`/patients/admin/${id}`).then((res) => res.data),
 };
 
 export default api;

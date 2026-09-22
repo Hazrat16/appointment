@@ -26,7 +26,7 @@ export const getAppointments = async (
       return;
     }
 
-    const { status, page = '1', limit = '10' } = req.query;
+    const { status, patientId, doctorId, page = '1', limit = '10' } = req.query;
 
     const filter: Record<string, unknown> = {};
     if (req.user.role === 'patient') {
@@ -41,6 +41,12 @@ export const getAppointments = async (
         return;
       }
       filter.doctor = doctor._id;
+    } else if (req.user.role === 'admin') {
+      // Only admin may narrow the otherwise-unfiltered "all appointments" view
+      // down to one patient/doctor — patients and doctors are already scoped
+      // to themselves above.
+      if (typeof patientId === 'string') filter.patient = patientId;
+      if (typeof doctorId === 'string') filter.doctor = doctorId;
     }
 
     if (typeof status === 'string') {
