@@ -5,6 +5,7 @@ import {
   LoginRequest,
   RegisterRequest,
   UpdateAppointmentRequest,
+  UpdateDoctorProfileRequest,
   UpdateProfileRequest,
 } from "@/types";
 import axios, { AxiosResponse } from "axios";
@@ -101,6 +102,11 @@ export const doctorsAPI = {
 
   updateAvailability: (data: AvailabilityRequest): Promise<ApiResponse> =>
     api.put("/doctors/availability", data).then((res) => res.data),
+
+  updateDoctorProfile: (
+    data: UpdateDoctorProfileRequest
+  ): Promise<ApiResponse> =>
+    api.put("/doctors/profile", data).then((res) => res.data),
 
   getDashboard: (): Promise<ApiResponse> =>
     api.get("/doctors/dashboard").then((res) => res.data),

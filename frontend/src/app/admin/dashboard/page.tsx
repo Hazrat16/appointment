@@ -12,6 +12,7 @@ import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import { useAuth } from "@/contexts/AuthContext";
 import { doctorsAPI } from "@/lib/api";
 import {
+  Calendar,
   CheckCircle,
   Clock,
   LogOut,
@@ -54,13 +55,8 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (user?.role !== "admin") {
-      router.push("/auth/login");
-      return;
-    }
-
     fetchDashboardData();
-  }, [user, router]);
+  }, []);
 
   const fetchDashboardData = async () => {
     try {
@@ -200,6 +196,12 @@ export default function AdminDashboard() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              <Link href="/admin/appointments">
+                <Button className="w-full justify-start" variant="outline">
+                  <Calendar className="h-4 w-4 mr-2" />
+                  Manage Appointments
+                </Button>
+              </Link>
               <Link href="/admin/doctors">
                 <Button className="w-full justify-start" variant="outline">
                   <Users className="h-4 w-4 mr-2" />

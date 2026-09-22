@@ -37,13 +37,8 @@ export default function PatientDashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (user?.role !== "patient") {
-      router.push("/auth/login");
-      return;
-    }
-
     fetchAppointments();
-  }, [user, router]);
+  }, []);
 
   const fetchAppointments = async () => {
     try {

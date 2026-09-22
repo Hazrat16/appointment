@@ -89,6 +89,17 @@ export const getDoctor = async (req: Request, res: Response, next: NextFunction)
     }
 
     const u = asPopulatedUser(doctor.user);
+    const isOwnerOrAdmin =
+      req.user?.role === 'admin' || (req.user && String(req.user.id) === String(u._id));
+
+    if (!doctor.isVerified && !isOwnerOrAdmin) {
+      res.status(404).json({
+        success: false,
+        message: 'Doctor not found',
+      });
+      return;
+    }
+
     const transformedDoctor = {
       ...doctor.toObject(),
       id: String(doctor._id),
@@ -125,6 +136,17 @@ export const getDoctorAvailability = async (
 
     const doctor = await Doctor.findById(req.params.id);
     if (!doctor) {
+      res.status(404).json({
+        success: false,
+        message: 'Doctor not found',
+      });
+      return;
+    }
+
+    const isOwnerOrAdmin =
+      req.user?.role === 'admin' || (req.user && String(req.user.id) === String(doctor.user));
+
+    if (!doctor.isVerified && !isOwnerOrAdmin) {
       res.status(404).json({
         success: false,
         message: 'Doctor not found',
@@ -259,6 +281,70 @@ export const updateAvailability = async (
       success: true,
       message: 'Availability updated successfully',
       availability: newAvailability,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const updateDoctorProfile = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    if (!req.user) {
+      res.status(401).json({ success: false, message: 'Not authenticated' });
+      return;
+    }
+
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array(),
+      });
+      return;
+    }
+
+    const b = req.body as Record<string, unknown>;
+    const fieldsToUpdate: Record<string, unknown> = {
+      specialization: b.specialization,
+      bio: b.bio,
+      consultationFee: b.consultationFee,
+      languages: b.languages,
+    };
+
+    Object.keys(fieldsToUpdate).forEach((key) => {
+      if (fieldsToUpdate[key] === undefined) delete fieldsToUpdate[key];
+    });
+
+    const doctor = await Doctor.findOneAndUpdate({ user: req.user.id }, fieldsToUpdate, {
+      new: true,
+      runValidators: true,
+    }).populate('user', 'firstName lastName email phone');
+
+    if (!doctor) {
+      res.status(404).json({
+        success: false,
+        message: 'Doctor profile not found',
+      });
+      return;
+    }
+
+    const u = asPopulatedUser(doctor.user);
+    res.json({
+      success: true,
+      message: 'Profile updated successfully',
+      doctor: {
+        ...doctor.toObject(),
+        id: String(doctor._id),
+        user: {
+          ...u.toObject(),
+          id: String(u._id),
+        },
+      },
     });
   } catch (error) {
     next(error);
@@ -437,6 +523,16 @@ export const getAllDoctorsAdmin = async (
 
 export const verifyDoctor = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array(),
+      });
+      return;
+    }
+
     const { isVerified } = req.body as { isVerified: boolean };
 
     const doctor = await Doctor.findById(req.params.id).populate('user', 'firstName lastName email');

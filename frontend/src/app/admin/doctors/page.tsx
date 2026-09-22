@@ -53,18 +53,13 @@ export default function AdminDoctorsPage() {
   const doctorId = searchParams.get("doctor");
 
   useEffect(() => {
-    if (user?.role !== "admin") {
-      router.push("/auth/login");
-      return;
-    }
-
     const filterParam = searchParams.get("filter");
     if (filterParam) {
       setFilter(filterParam);
     }
 
     fetchDoctors();
-  }, [user, router, searchParams]);
+  }, [searchParams]);
 
   const fetchDoctors = async () => {
     try {

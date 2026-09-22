@@ -32,13 +32,8 @@ export default function DoctorDashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (user?.role !== "doctor") {
-      router.push("/auth/login");
-      return;
-    }
-
     fetchDashboardData();
-  }, [user, router]);
+  }, []);
 
   const fetchDashboardData = async () => {
     try {

@@ -343,6 +343,14 @@ export const updateAppointment = async (
     let allowedFields: Record<string, unknown> = {};
 
     if (req.user.role === 'doctor' || req.user.role === 'admin') {
+      if (b.status === 'cancelled') {
+        res.status(400).json({
+          success: false,
+          message: 'Use DELETE /api/appointments/:id to cancel an appointment',
+        });
+        return;
+      }
+
       allowedFields = {
         status: b.status,
         prescription: b.prescription,
@@ -362,17 +370,12 @@ export const updateAppointment = async (
       if (allowedFields[key] === undefined) delete allowedFields[key];
     });
 
-    if (
-      allowedFields.status !== undefined &&
-      allowedFields.status !== appointment.status
-    ) {
-      if (['completed', 'cancelled', 'no-show'].includes(appointment.status)) {
-        res.status(400).json({
-          success: false,
-          message: 'Status cannot be changed from a terminal appointment state',
-        });
-        return;
-      }
+    if (['completed', 'cancelled', 'no-show'].includes(appointment.status)) {
+      res.status(400).json({
+        success: false,
+        message: 'This appointment is in a terminal state and cannot be edited',
+      });
+      return;
     }
 
     const updatedAppointment = await Appointment.findByIdAndUpdate(

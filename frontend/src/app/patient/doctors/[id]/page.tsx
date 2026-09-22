@@ -10,7 +10,6 @@ import {
 } from "@/components/ui/Card";
 import Input from "@/components/ui/Input";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
-import { useAuth } from "@/contexts/AuthContext";
 import { appointmentsAPI, doctorsAPI } from "@/lib/api";
 import { formatCurrency, getInitials } from "@/lib/utils";
 import { CreateAppointmentRequest, Doctor } from "@/types";
@@ -52,7 +51,6 @@ export default function DoctorBookingPage({
 }: {
   params: { id: string };
 }) {
-  const { user } = useAuth();
   const router = useRouter();
   const [doctor, setDoctor] = useState<Doctor | null>(null);
   const [loading, setLoading] = useState(true);
@@ -73,19 +71,10 @@ export default function DoctorBookingPage({
   const watchedDate = watch("appointmentDate");
 
   useEffect(() => {
-    if (user?.role !== "patient") {
-      router.push("/auth/login");
-      return;
-    }
-
-    console.log("Params in useEffect:", params);
-    console.log("Doctor ID from params:", params.id);
-    console.log("Type of ID:", typeof params.id);
-
     if (params.id) {
       fetchDoctor();
     }
-  }, [user, router, params.id]);
+  }, [params.id]);
 
   useEffect(() => {
     if (watchedDate) {
@@ -94,10 +83,7 @@ export default function DoctorBookingPage({
   }, [watchedDate, params.id]);
 
   const fetchDoctor = async () => {
-    console.log("fetchDoctor called with params.id:", params.id);
-
     if (!params.id) {
-      console.log("No doctor ID provided");
       toast.error("Invalid doctor ID");
       router.push("/patient/doctors");
       return;
@@ -105,9 +91,7 @@ export default function DoctorBookingPage({
 
     try {
       setLoading(true);
-      console.log("Making API call to:", `/doctors/${params.id}`);
       const response = await doctorsAPI.getDoctor(params.id);
-      console.log("Doctor API response:", response);
 
       if (response.success && response.doctor) {
         setDoctor(response.doctor);
@@ -146,12 +130,6 @@ export default function DoctorBookingPage({
   const onSubmit = async (data: AppointmentFormData) => {
     if (!doctor) return;
 
-    console.log("Form data:", data);
-    console.log("Selected time slot:", {
-      startTime: data.startTime,
-      endTime: data.endTime,
-    });
-
     try {
       setBooking(true);
       const appointmentData: CreateAppointmentRequest = {
@@ -162,8 +140,6 @@ export default function DoctorBookingPage({
         symptoms: data.symptoms,
         notes: data.notes || "",
       };
-
-      console.log("Appointment data being sent:", appointmentData);
 
       const response = await appointmentsAPI.createAppointment(appointmentData);
       if (response.success) {
@@ -181,7 +157,6 @@ export default function DoctorBookingPage({
   };
 
   const handleTimeSlotSelect = (startTime: string, endTime: string) => {
-    console.log("Time slot selected:", { startTime, endTime });
     setValue("startTime", startTime);
     setValue("endTime", endTime);
   };

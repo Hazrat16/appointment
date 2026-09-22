@@ -10,13 +10,12 @@ import {
 } from "@/components/ui/Card";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import Select from "@/components/ui/Select";
-import { useAuth } from "@/contexts/AuthContext";
 import { doctorsAPI } from "@/lib/api";
 import { getDayName, getShortDayName } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowLeft, Calendar, Clock, Plus, Save, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import toast from "react-hot-toast";
 import { z } from "zod";
@@ -44,7 +43,6 @@ interface AvailabilitySlot {
 }
 
 export default function AvailabilityPage() {
-  const { user } = useAuth();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -94,13 +92,6 @@ export default function AvailabilityPage() {
   });
 
   const availability = watch("availability");
-
-  useEffect(() => {
-    if (user?.role !== "doctor") {
-      router.push("/auth/login");
-      return;
-    }
-  }, [user, router]);
 
   const addAvailabilitySlot = () => {
     const newSlot: AvailabilitySlot = {
