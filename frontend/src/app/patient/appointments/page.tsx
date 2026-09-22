@@ -18,19 +18,27 @@ import {
   formatTime,
   getStatusColor,
 } from "@/lib/utils";
-import { ArrowLeft, Calendar, Clock, LogOut, Plus, User, X } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  ArrowLeft,
+  Calendar,
+  Clock,
+  LogOut,
+  Plus,
+  User,
+  X,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 
 export default function AppointmentsPage() {
   const { user, logout } = useAuth();
   const router = useRouter();
   const queryClient = useQueryClient();
-  const [appointmentToCancel, setAppointmentToCancel] = useState<
-    string | null
-  >(null);
+  const [appointmentToCancel, setAppointmentToCancel] = useState<string | null>(
+    null,
+  );
 
   useEffect(() => {
     if (user?.role !== "patient") {
@@ -78,12 +86,12 @@ export default function AppointmentsPage() {
     (apt) =>
       new Date(apt.appointmentDate) >= new Date() &&
       apt.status !== "cancelled" &&
-      apt.status !== "completed"
+      apt.status !== "completed",
   );
 
   const pastAppointments = appointments.filter(
     (apt) =>
-      new Date(apt.appointmentDate) < new Date() || apt.status === "completed"
+      new Date(apt.appointmentDate) < new Date() || apt.status === "completed",
   );
 
   if (loading) {
@@ -150,7 +158,7 @@ export default function AppointmentsPage() {
                       </CardTitle>
                       <span
                         className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(
-                          appointment.status
+                          appointment.status,
                         )}`}
                       >
                         {appointment.status}
@@ -166,7 +174,7 @@ export default function AppointmentsPage() {
                         <Calendar className="w-4 h-4 mr-2" />
                         {formatDate(
                           appointment.appointmentDate,
-                          "MMM dd, yyyy"
+                          "MMM dd, yyyy",
                         )}
                       </div>
                       <div className="flex items-center text-sm text-gray-600">
@@ -193,7 +201,10 @@ export default function AppointmentsPage() {
                           variant="outline"
                           className="w-full"
                           onClick={() => handleCancel(appointment.id)}
-                          loading={cancelMutation.isPending && cancelMutation.variables === appointment.id}
+                          loading={
+                            cancelMutation.isPending &&
+                            cancelMutation.variables === appointment.id
+                          }
                           disabled={cancelMutation.isPending}
                         >
                           <X className="w-4 h-4 mr-2" />
@@ -243,7 +254,7 @@ export default function AppointmentsPage() {
                       </CardTitle>
                       <span
                         className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(
-                          appointment.status
+                          appointment.status,
                         )}`}
                       >
                         {appointment.status}
@@ -259,7 +270,7 @@ export default function AppointmentsPage() {
                         <Calendar className="w-4 h-4 mr-2" />
                         {formatDate(
                           appointment.appointmentDate,
-                          "MMM dd, yyyy"
+                          "MMM dd, yyyy",
                         )}
                       </div>
                       <div className="flex items-center text-sm text-gray-600">

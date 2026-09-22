@@ -50,7 +50,7 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
         onClick={onCancel}
         aria-hidden="true"
       />
-      <div className="relative w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl">
+      <div className="relative w-auto rounded-2xl bg-white p-6 shadow-xl">
         <h2
           id="confirm-dialog-title"
           className="text-lg font-semibold text-gray-900"
